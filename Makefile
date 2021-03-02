@@ -20,7 +20,8 @@ DIR_OBJS	=	./compiled_srcs/
 
 # FILES #
 
-SRCS			=	woody_woodpacker.c
+SRCS			=	woody_woodpacker.c \
+					utils.c
 
 # COMPILED_SOURCES #
 
