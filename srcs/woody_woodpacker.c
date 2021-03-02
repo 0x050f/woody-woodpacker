@@ -1,5 +1,13 @@
 #include "woody_woodpacker.h"
 
+void		exec(void)
+{
+}
+
+void		encrypt(void)
+{
+}
+
 /**
 * @brief Check which file of type it is (FILE_EXEC, FILE_ENCRYPTED, FILE_UNDF)
 *
@@ -65,9 +73,11 @@ int			woody_woodpacker(char *filename)
 	{
 		// TODO: if the program is a executable encrypt it
 		case FILE_EXEC:
+			encrypt();
 			break;
 		// TODO: else if it's a encrypted program, execute it
 		case FILE_ENCRYPTED:
+			exec();
 			break;
 		// TODO: else -> not known file => error
 		default:
