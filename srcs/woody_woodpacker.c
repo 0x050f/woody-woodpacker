@@ -1,7 +1,15 @@
 #include "woody_woodpacker.h"
 
-void		encrypt(void)
+int			encrypt(void *addr, int size)
 {
+	(void)addr;
+	(void)size;
+	return (0);
+}
+
+int			create_woody(void *addr, int size)
+{
+	return (0);
 }
 
 /**
@@ -62,20 +70,18 @@ int			woody_woodpacker(char *filename)
 		close(fd);
 		return (errno);
 	}
-	ret = check_file(addr);
-	switch (ret)
-	{
-		// TODO: if the program is a executable encrypt it
-		case FILE_EXEC:
-			encrypt();
-			break;
-		// TODO: else -> not known file => error
-		default:
-			return ((errno = EINVAL));
-	}
+	// TODO: if the program is a executable encrypt it
+	if (check_file(addr) == FILE_EXEC)
+		ret = encrypt(addr, size);
+	else
+		ret = EINVAL;
+	if (!ret)
+		
+	else
+		errno = ret;
 	munmap(addr, size);
 	close(fd);
-	return (0);
+	return (ret);
 }
 
 /**
