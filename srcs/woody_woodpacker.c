@@ -1,9 +1,5 @@
 #include "woody_woodpacker.h"
 
-void		exec(void)
-{
-}
-
 void		encrypt(void)
 {
 }
@@ -29,14 +25,12 @@ int			check_file(void *addr)
 			return (FILE_EXEC);
 		// TODO: bonus 32 bits
 	}
-	else if (0) // TODO: encrypted
-		return (FILE_ENCRYPTED);
 	return (FILE_UNDF);
 }
 
 /**
 * @brief Open, then map the given file to pass parameter to check the file with check_file()
-* and 'TODO' to encrypt the program if it's a executable or execute it if it's a encrypted program
+* and 'TODO' to encrypt the program if it's a executable
 *
 * @see check_file(void *addr)
 *
@@ -74,10 +68,6 @@ int			woody_woodpacker(char *filename)
 		// TODO: if the program is a executable encrypt it
 		case FILE_EXEC:
 			encrypt();
-			break;
-		// TODO: else if it's a encrypted program, execute it
-		case FILE_ENCRYPTED:
-			exec();
 			break;
 		// TODO: else -> not known file => error
 		default:
