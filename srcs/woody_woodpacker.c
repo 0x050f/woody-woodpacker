@@ -7,8 +7,19 @@ int			encrypt(void *addr, int size)
 	return (0);
 }
 
-int			create_woody(void *addr, int size)
+int			inject(void)
 {
+	return (0);
+}
+
+int			create_woody_file(void *addr, int size)
+{
+	int		fd;
+
+	(void)addr;
+	(void)size;
+	fd = open("woody", O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	close(fd);
 	return (0);
 }
 
@@ -70,13 +81,15 @@ int			woody_woodpacker(char *filename)
 		close(fd);
 		return (errno);
 	}
+	// TODO: inject
+	inject();
 	// TODO: if the program is a executable encrypt it
 	if (check_file(addr) == FILE_EXEC)
 		ret = encrypt(addr, size);
 	else
 		ret = EINVAL;
 	if (!ret)
-		
+		create_woody_file(addr, size);
 	else
 		errno = ret;
 	munmap(addr, size);
