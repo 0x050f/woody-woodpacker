@@ -7,18 +7,55 @@ int			encrypt(void *addr, int size)
 	return (0);
 }
 
-int			inject(void)
-{
-	return (0);
-}
-
 int			create_woody_file(void *addr, int size)
 {
-	int		fd;
+//	void			*ptr;
+	int				fd;
+	Elf64_Ehdr		*header;
+//	Elf64_Phdr		*segments;
+	Elf64_Shdr		*section;
+	void			*offset;
+	void			*end_sections;
+	void			*offset_str;
+//	Elf64_Shdr		inject_section;
+	char			*name;
 
-	(void)addr;
+
 	(void)size;
-	fd = open("woody", O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	header = addr;
+//	segments = addr + header->e_phoff;
+	offset = addr + header->e_shoff;
+	end_sections = offset + header->e_shnum * header->e_shentsize;
+	section = offset + header->e_shstrndx * header->e_shentsize;
+	offset_str = addr + section->sh_offset;
+	while ((void *)offset < end_sections)
+	{
+		section = offset;
+		name = offset_str + section->sh_name;
+		if (!strcmp(name, ".text"))
+		{
+//			inject_section.sh_addr = section->sh_addr;
+//			inject_section.sh_offset = section->sh_offset;
+//			inject_section.sh_size = section->sh_size;
+//			section->sh_flags |= SHF_WRITE; // ?
+			break;
+		}
+		offset += header->e_shentsize;
+	}
+	fd = open("woody", O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	write(fd, addr, sizeof(header->e_ident) + sizeof(header->e_type) + sizeof(header->e_machine) + sizeof(header->e_version));
+	Elf64_Addr new_entry = (unsigned long)offset + size;
+	write(fd, &new_entry, sizeof(header->e_entry));
+	addr += sizeof(header->e_ident) + sizeof(header->e_type) + sizeof(header->e_machine) + sizeof(header->e_version) + sizeof(header->e_entry);
+	size -= sizeof(header->e_ident) + sizeof(header->e_type) + sizeof(header->e_machine) + sizeof(header->e_version) + sizeof(header->e_entry);
+	write(fd, addr, size);
+	int				inject_size;
+	void			*injection;
+
+	inject_size = _get_inject_size();
+	injection = malloc(inject_size);
+	ft_memcpy(injection, (void *)_inject, inject_size);
+	write(fd, injection, inject_size);
 	close(fd);
 	return (0);
 }
@@ -81,8 +118,6 @@ int			woody_woodpacker(char *filename)
 		close(fd);
 		return (errno);
 	}
-	// TODO: inject
-	inject();
 	// TODO: if the program is a executable encrypt it
 	if (check_file(addr) == FILE_EXEC)
 		ret = encrypt(addr, size);
