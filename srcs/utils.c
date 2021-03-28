@@ -36,6 +36,25 @@ int			ft_strcmp(const char *s1, const char *s2)
 }
 
 /**
+* @brief Set len byte of b to c value
+*
+* @param b pointer
+* @param c ascii char
+* @param len length to set
+*
+* @return b
+*/
+void		*ft_memset(void *b, int c, size_t len)
+{
+	unsigned char	*pt;
+
+	pt = (unsigned char *)b;
+	while (len--)
+		*pt++ = (unsigned char)c;
+	return (b);
+}
+
+/**
 * @brief Copy n byte from src to dst
 *
 * @param dst Memory destination

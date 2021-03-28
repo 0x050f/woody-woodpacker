@@ -1,8 +1,11 @@
+SHELL=/bin/bash
+
 # COLORS #
 #
 _RED		=	\e[31m
 _GREEN		=	\e[32m
 _YELLOW		=	\e[33m
+_BLUE		=	\e[34m
 _END		=	\e[0m
 
 # COMPILATION #
@@ -12,6 +15,8 @@ CC			=	gcc
 CC_FLAGS	=	-Wall -Wextra -Werror
 
 NASM		=	nasm
+
+CC_FLAGS	=	-Wall -Wextra -Werror
 
 NASM_FLAGS	=	-f elf64
 
@@ -36,9 +41,15 @@ SRCS_ASM		=	inject.s
 
 OBJS 		=	$(SRCS:%.c=$(DIR_OBJS)%.o)
 
-OBJS_ASM	=	$(SRCS_ASM:%.s=$(DIR_OBJS)%.o)
+OBJS_ASM	=	$(SRCS_ASM:%.s=$(DIR_OBJS_ASM)%.o)
 
 NAME 		=	woody_woodpacker
+
+# CMDS #
+
+INJECT		=	readelf -x .text $(DIR_OBJS)$(basename $(SRCS_ASM)) | awk '{if(NR>2)print}' | sed -e '$$d' | sed 's/  //' | cut -f 2- -d ' ' | cut -d ' ' -f 1,2,3,4 | sed 's/ //g' | sed 's/\n//g' | tr -d '\n' | sed 's/../\\\\x&/g'
+
+SIZE_INJECT =	(echo -n "("; (wc -c <<< $(shell $(INJECT))) | xargs echo -n; echo " - 1) / 4") | bc
 
 ## RULES ##
 
@@ -49,9 +60,9 @@ debug:			all
 
 # VARIABLES RULES #
 
-$(NAME):		$(OBJS) $(OBJS_ASM)
-				@printf "\033[2K\r$(_GREEN) All files compiled into '$(DIR_OBJS)'. $(_END)✅\n"
-				@$(CC) $(CC_FLAGS) -I $(DIR_HEADERS) $(OBJS) $(OBJS_ASM) -o $(NAME)
+$(NAME):		$(OBJS_ASM) $(OBJS)
+				@printf "\033[2K\r$(_BLUE) All files compiled into '$(DIR_OBJS)'. $(_END)✅\n"
+				@gcc $(CC_FLAGS) -I $(DIR_HEADERS) $(OBJS) -o $(NAME)
 				@printf "\033[2K\r$(_GREEN) Executable '$(NAME)' created. $(_END)✅\n"
 
 # COMPILED_SOURCES RULES #
@@ -62,11 +73,12 @@ $(OBJS_ASM):	| $(DIR_OBJS_ASM)
 
 $(DIR_OBJS)%.o: $(DIR_SRCS)%.c
 				@printf "\033[2K\r $(_YELLOW)Compiling $< $(_END)⌛ "
-				@$(CC) $(CC_FLAGS) -I $(DIR_HEADERS) -c $< -o $@
+				@gcc $(CC_FLAGS) -D INJECT=\"$(shell $(INJECT))\" -D INJECT_SIZE=$(shell $(SIZE_INJECT)) -I $(DIR_HEADERS) -c $< -o $@
 
 $(DIR_OBJS_ASM)%.o: $(DIR_SRCS)%.s
 				@printf "\033[2K\r $(_YELLOW)Compiling $< $(_END)⌛ "
-				@$(NASM) $(NASM_FLAGS) -o $@ $<
+				@nasm $(NASM_FLAGS) -o $@ $<
+				@ld $@ -o $(basename $@)
 
 $(DIR_OBJS):
 				@mkdir -p $(DIR_OBJS)
