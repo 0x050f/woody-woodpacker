@@ -50,13 +50,13 @@ _inject:
 
 	mov rax, rdi
 	add rax, [rel old_entry]
-	pop rdx ; get register
-	jmp rax
+	pop rdx ; get back register
+	jmp rax ; jump to old_entry
 
-_params_xor:
-	vaddr dq 0x9999999999999999
-	offset dq 0xAAAAAAAAAAAAAAAA
-	size dq 0xBBBBBBBBBBBBBBBB
-	new_entry dq 0xDDDDDDDDDDDDDDDD
-	old_entry dq 0xEEEEEEEEEEEEEEEE
-	key dq 0xCCCCCCCCCCCCCCCC
+_params:
+	vaddr dq 0x0
+	offset dq 0x0
+	size dq 0x0
+	new_entry dq 0x0
+	old_entry dq 0x0
+	key dq 0x0
