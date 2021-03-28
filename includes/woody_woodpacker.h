@@ -10,9 +10,6 @@
 # include <sys/mman.h>
 # include <unistd.h>
 
-# define FILE_EXEC 0
-# define FILE_UNDF 1
-
 # ifndef INJECT
 #  define INJECT ""
 # endif

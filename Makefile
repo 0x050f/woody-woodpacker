@@ -82,8 +82,6 @@ $(DIR_OBJS):
 clean:
 				@rm -rf $(DIR_OBJS)
 				@printf "\033[2K\r$(_RED) '"$(DIR_OBJS)"' has been deleted. $(_END)🗑️\n"
-				@rm -rf woody
-				@printf "\033[2K\r$(_RED) 'woody' has been deleted. $(_END)🗑️\n"
 
 fclean:			clean
 				@rm -rf $(NAME)

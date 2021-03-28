@@ -47,26 +47,14 @@ void		write_inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64
 
 	ft_memcpy(*ptr_dst, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 6));
 	*ptr_dst += INJECT_SIZE - (sizeof(uint64_t) * 6);
-	printf("12 %p\n", *ptr_dst);
-	ft_memcpy(*ptr_dst, &vaddr, sizeof(uint64_t));
-	*ptr_dst += sizeof(uint64_t);
-	printf("13 %p\n", *ptr_dst);
-	ft_memcpy(*ptr_dst, &text->sh_offset, sizeof(uint64_t));
-	*ptr_dst += sizeof(uint64_t);
-	printf("14 %p\n", *ptr_dst);
-	ft_memcpy(*ptr_dst, &text->sh_size, sizeof(uint64_t));
-	*ptr_dst += sizeof(uint64_t);
-	printf("15 %p\n", *ptr_dst);
-	ft_memcpy(*ptr_dst, &new_entry, sizeof(uint64_t));
-	*ptr_dst += sizeof(uint64_t);
-	printf("16 %p\n", *ptr_dst);
-	ft_memcpy(*ptr_dst, &old_entry, sizeof(uint64_t));
-	*ptr_dst += sizeof(uint64_t);
-	printf("17 %p\n", *ptr_dst);
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 0, &vaddr, sizeof(uint64_t));
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 1, &text->sh_offset, sizeof(uint64_t));
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 2, &text->sh_size, sizeof(uint64_t));
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 3, &new_entry, sizeof(uint64_t));
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 4, &old_entry, sizeof(uint64_t));
 	key = 0x123456789;
-	ft_memcpy(*ptr_dst, &key, sizeof(uint64_t));
-	*ptr_dst += sizeof(uint64_t);
-	printf("18 %p\n", *ptr_dst);
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 5, &key, sizeof(uint64_t));
+	*ptr_dst += sizeof(uint64_t) * 6;
 
 }
 
@@ -86,17 +74,14 @@ void		*write_new_segment_sz(void *ptr_src, void **ptr_dst, Elf64_Phdr *segment)
 
 	ft_memcpy(*ptr_dst, ptr_src, (unsigned long)&segment->p_filesz - (unsigned long)ptr_src);
 	*ptr_dst += (unsigned long)&segment->p_filesz - (unsigned long)ptr_src;
-	printf("4 %p\n", *ptr_dst);
 	ptr_src = &segment->p_filesz;
 	p_filesz = segment->p_filesz + INJECT_SIZE;
 	ft_memcpy(*ptr_dst, &p_filesz, sizeof(segment->p_filesz));
 	*ptr_dst += sizeof(segment->p_filesz);
-	printf("5 %p\n", *ptr_dst);
 	ptr_src += sizeof(segment->p_filesz);
 	p_memsz = segment->p_memsz + INJECT_SIZE;
 	ft_memcpy(*ptr_dst, &p_memsz, sizeof(segment->p_memsz));
 	*ptr_dst += sizeof(segment->p_memsz);
-	printf("6 %p\n", *ptr_dst);
 	ptr_src += sizeof(segment->p_memsz);
 	return (ptr_src);
 }
@@ -116,10 +101,8 @@ void		*add_padding_segments(void *addr, void *ptr_src, void **ptr_dst, Elf64_Phd
 		{
 			shoff = segments[i].p_offset + PAGE_SIZE;
 			ft_memcpy(*ptr_dst, ptr_src, (unsigned long)&segments[i].p_offset - (unsigned long)ptr_src);
-			printf("%p\n", ptr_dst);
 			*ptr_dst += (unsigned long)&segments[i].p_offset - (unsigned long)ptr_src;
 			ft_memcpy(*ptr_dst, &shoff, sizeof(shoff));
-			printf("%p\n", ptr_dst);
 			*ptr_dst += sizeof(shoff);
 			ptr_src = (void *)&segments[i].p_offset + sizeof(segments[i].p_offset);
 		}
@@ -141,14 +124,11 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 	ptr_dst = dst;
 	end = src + size;
 	header = src;
-	printf("1 %p\n", ptr_dst);
 	new_entry = segment->p_vaddr + segment->p_offset + segment->p_memsz;
 	ft_memcpy(ptr_dst, ptr_src, (unsigned long)&header->e_entry - (unsigned long)ptr_src);
 	ptr_dst += (unsigned long)&header->e_entry - (unsigned long)ptr_src;
-	printf("2 %p\n", ptr_dst);
 	ft_memcpy(ptr_dst, &new_entry, sizeof(new_entry));
 	ptr_dst += sizeof(new_entry);
-	printf("3 %p\n", ptr_dst);
 	ptr_src = (void *)&header->e_entry + sizeof(header->e_entry);
 	Elf64_Shdr		*sections;
 	Elf64_Off		shoff;
@@ -161,16 +141,13 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 		shoff = header->e_shoff + PAGE_SIZE;
 		ft_memcpy(ptr_dst, ptr_src, (unsigned long)&header->e_shoff - (unsigned long)ptr_src);
 		ptr_dst += (unsigned long)&header->e_shoff - (unsigned long)ptr_src;
-		printf("%p\n", ptr_dst);
 		ft_memcpy(ptr_dst, &shoff, sizeof(shoff));
 		ptr_dst += sizeof(shoff);
-		printf("%p\n", ptr_dst);
 		ptr_src = (void *)&header->e_shoff + sizeof(header->e_shoff);
 		ptr_src = add_padding_segments(src, ptr_src, &ptr_dst, segment);
 	}
 	else
 		ptr_src = write_new_segment_sz(ptr_src, &ptr_dst, segment);
-	printf("7 %p\n", ptr_dst);
 // ---------------
 	Elf64_Shdr		*text;
 	text = get_text_section(src);
@@ -178,41 +155,23 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, 0x123456789);
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src;
-	printf("8 %p\n", ptr_dst);
 	ft_memcpy(ptr_dst, encrypt, text->sh_size);
 	ptr_dst += text->sh_size;
 	free(encrypt);
-	printf("9 %p\n", ptr_dst);
 //
 	ptr_src = src + text->sh_offset + text->sh_size;
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src;
-	printf("10 %p\n", ptr_dst);
 	ptr_src = src + segment->p_offset + segment->p_memsz;
 	write_inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry);
-	printf("11 %p\n", ptr_dst);
 	if (type ==  ADD_PADDING)
 	{
-		printf("ADD PADDING\n");
 		Elf64_Phdr		*segments;
 
 		segments = segment + 1;
-		char	zero[PAGE_SIZE];
-		ft_memset(zero, 0, PAGE_SIZE);
-		if (segment->p_offset + segment->p_memsz + INJECT_SIZE < segments->p_offset)
-		{
-			printf("aie\n");
-			ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + segments->p_offset) - (unsigned long)ptr_src);
-			ptr_dst += ((unsigned long)src + segments->p_offset) - (unsigned long)ptr_src;
-			ft_memset(ptr_dst, 0, PAGE_SIZE);
-			ptr_dst += PAGE_SIZE;
-		}
-		else
-		{
-			int diff = INJECT_SIZE - (segments->p_offset - (segment->p_offset + segment->p_filesz));
-			ft_memset(ptr_dst, 0, PAGE_SIZE - (diff % PAGE_SIZE));
-			ptr_dst += PAGE_SIZE % (diff - PAGE_SIZE);
-		}
+		int diff = INJECT_SIZE - (segments->p_offset - (segment->p_offset + segment->p_filesz));
+		ft_memset(ptr_dst, 0, PAGE_SIZE - (diff % PAGE_SIZE));
+		ptr_dst += PAGE_SIZE - (diff % PAGE_SIZE);
 		ptr_src = src + segments->p_offset;
 		for (int i = 0; i < header->e_shnum; i++)
 		{
@@ -229,11 +188,7 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 	}
 	else
 		ptr_src += INJECT_SIZE;
-	printf("inject size %d\n", INJECT_SIZE);
-	printf("truc deja alloué %ld\n", ptr_dst - dst);
-	printf("restant %ld\n", end - ptr_src);
 	ft_memcpy(ptr_dst, ptr_src, end - ptr_src);
-	printf("12 %p\n", ptr_dst);
 	return (0);
 }
 
@@ -247,12 +202,35 @@ long		get_size_needed(void *addr, long size, int type)
 	return (size);
 }
 
+int			write_file(char *filename, char *content, long size)
+{
+	int				fd;
+	long			i;
+	void			*ptr;
+
+	fd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	if (fd < 0)
+		return (errno);
+	i = 0;
+	while (i < size)
+	{
+		ptr = content + i;
+		if (size - i >= 4096)
+			i += write(fd, ptr, 4096);
+		else
+			i += write(fd, ptr, size % 4096);
+	}
+	close(fd);
+	return (0);
+}
+
 int			create_woody_file(void *addr, long size)
 {
+	int				ret;
 	void			*dst;
 	long			size_dst;
-	int				fd;
 	int				i;
+	int				type;
 	Elf64_Ehdr		*header;
 	Elf64_Phdr		*segments;
 	Elf64_Phdr		*load_segment;
@@ -260,7 +238,7 @@ int			create_woody_file(void *addr, long size)
 
 	header = addr;
 	if (header->e_type != ET_EXEC && header->e_type != ET_DYN) // TODO: ERROR NOT EXEC ? (Check every possible exec)
-		printf("NOT EXECUTABLE -> 0x%0x\n", header->e_type);
+		return (EINVAL);
 	segments = addr + header->e_phoff;
 	i = 0;
 	load_segment = NULL;
@@ -276,39 +254,22 @@ int			create_woody_file(void *addr, long size)
 		next = (i < header->e_phnum - 1) ? segments + 1 : NULL;
 		i++;
 	}
-	
 	// TODO: do it first with malloc/mmap, and then paste in it to avoid scribble shit
 	if (segments->p_type == PT_LOAD && next->p_type == PT_LOAD && segments->p_offset + segments->p_memsz + INJECT_SIZE <= next->p_offset + segments->p_offset)
-	{
-		size_dst = get_size_needed(addr, size, 0);
-		printf("size %ld\n", size_dst);
-		dst = malloc(size_dst);
+		type = 0;
+	else
+		type = ADD_PADDING;
+	size_dst = get_size_needed(addr, size, type);
+	if (!(dst = malloc(size_dst)))
+		return (1); // TODO: error malloc
+	if (type == ADD_PADDING)
+		write_injection(addr, dst, size, load_segment, type);
+	else
 		write_injection(addr, dst, size, segments, 0);
-	}
-	else // ADD PADDING
-	{
-		printf("size base %ld\n", size);
-		size_dst = get_size_needed(addr, size, ADD_PADDING);
-		printf("size %ld\n", size_dst);
-		dst = malloc(size_dst);
-		write_injection(addr, dst, size, load_segment, ADD_PADDING);
-	}
-	fd = open("woody", O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	void *ptr;
-	ptr = dst;
-	i = 0;
-	while (i < size_dst)
-	{
-		if (i + 4096 <= size_dst)
-		{
-			i += write(fd, ptr, 4096);
-			ptr += 4096;
-		}
-		else
-			i += write(fd, ptr, size_dst % 4096);
-	}
+	ret = write_file("woody", dst, size_dst);
 	free(dst);
-	close(fd);
+	if (ret)
+		return (ret);
 	return (0);
 }
 
@@ -321,8 +282,10 @@ int			create_woody_file(void *addr, long size)
 */
 int			check_file(void *addr)
 {
+	Elf64_Ehdr		*header;
 	unsigned char	magic[EI_NIDENT];
 
+	header = addr;
 	ft_memcpy(magic, addr, sizeof(magic));
 	if ((magic[EI_MAG0] == ELFMAG0) &&
 		(magic[EI_MAG1] == ELFMAG1) &&
@@ -330,10 +293,10 @@ int			check_file(void *addr)
 		(magic[EI_MAG3] == ELFMAG3))
 	{
 		if (magic[EI_CLASS] == ELFCLASS64)
-			return (FILE_EXEC);
+			return (header->e_type);
 		// TODO: bonus 32 bits
 	}
-	return (FILE_UNDF);
+	return (ET_NONE);
 }
 
 /**
@@ -356,12 +319,18 @@ int			woody_woodpacker(char *filename)
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
 		return (errno);
+	ret = read(fd, NULL, 0);
+	if (ret < 0)
+	{
+		close(fd);
+		return (errno);
+	}
 	size = lseek(fd, (size_t)0, SEEK_END);
 	if (size < 0)
 	{
 		close(fd);
 		if (!errno) // Don't know why it doesn't fill errno in this case
-			errno = EISDIR; // EINVAL ?
+			errno = EINVAL;
 		return (errno);
 	}
 	addr = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -371,12 +340,13 @@ int			woody_woodpacker(char *filename)
 		return (errno);
 	}
 	// TODO: Compression
-	if (check_file(addr) == FILE_EXEC)
+	ret = check_file(addr);
+	if (ret == ET_EXEC || ret == ET_DYN)
 		ret = 0;
 	else
 		ret = EINVAL;
 	if (!ret)
-		create_woody_file(addr, size);
+		ret = create_woody_file(addr, size);
 	else
 		errno = ret;
 	munmap(addr, size);
