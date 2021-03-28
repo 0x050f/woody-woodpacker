@@ -20,7 +20,9 @@ void		*get_text_section(void *addr)
 	while (i < header->e_shnum && ft_strcmp(str + sections[i].sh_name, ".text"))
 		i++;
 	if (i == header->e_shnum)
+	{
 		return (NULL);
+	}
 	return (&sections[i]);
 }
 
@@ -39,15 +41,16 @@ char		*xor_encrypt(char *input, size_t input_len, uint64_t key)
 	return (encrypt);
 }
 
-void		write_inject_fd(int fd, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr)
+void		write_inject_fd(int fd, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry)
 {
 	uint64_t	key;
 
-	write(fd, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 5));
+	write(fd, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 6));
 	write(fd, &vaddr, sizeof(uint64_t));
 	write(fd, &text->sh_offset, sizeof(uint64_t));
 	write(fd, &text->sh_size, sizeof(uint64_t));
 	write(fd, &new_entry, sizeof(uint64_t));
+	write(fd, &old_entry, sizeof(uint64_t));
 	key = 0x123456789;
 	write(fd, &key, sizeof(uint64_t));
 
@@ -143,7 +146,7 @@ int			write_injection(int fd, void *addr, int size, Elf64_Phdr *segment, int typ
 	ptr = addr + text->sh_offset + text->sh_size;
 	write(fd, ptr, ((unsigned long)addr + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr);
 	ptr = addr + segment->p_offset + segment->p_memsz;
-	write_inject_fd(fd, text, new_entry, segment->p_vaddr);
+	write_inject_fd(fd, text, new_entry, segment->p_vaddr, header->e_entry);
 	if (type ==  ADD_PADDING)
 	{
 		Elf64_Phdr		*segments;

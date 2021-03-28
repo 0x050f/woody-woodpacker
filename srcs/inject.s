@@ -48,6 +48,8 @@ _inject:
 		jmp _decrypt
 	_end_decrypt:
 
+	mov rax, rdi
+	add rax, [rel old_entry]
 	pop rdx ; get register
 	jmp rax
 
@@ -55,5 +57,6 @@ _params_xor:
 	vaddr dq 0x9999999999999999
 	offset dq 0xAAAAAAAAAAAAAAAA
 	size dq 0xBBBBBBBBBBBBBBBB
-	new_entry dq 0xDDDDDDDDDDDDDDDE
+	new_entry dq 0xDDDDDDDDDDDDDDDD
+	old_entry dq 0xEEEEEEEEEEEEEEEE
 	key dq 0xCCCCCCCCCCCCCCCC
