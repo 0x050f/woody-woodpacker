@@ -10,12 +10,6 @@ _END		=	\e[0m
 
 # COMPILATION #
 
-CC			=	gcc
-
-CC_FLAGS	=	-Wall -Wextra -Werror
-
-NASM		=	nasm
-
 CC_FLAGS	=	-Wall -Wextra -Werror
 
 NASM_FLAGS	=	-f elf64
