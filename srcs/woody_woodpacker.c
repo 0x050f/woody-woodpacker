@@ -39,36 +39,17 @@ char		*xor_encrypt(char *input, size_t input_len, uint64_t key)
 	return (encrypt);
 }
 
-/**
-* @brief write inject on fd, adding a jmp at the end pointing to new_entry
-*
-* @param fd file descriptor to write
-* @param old_entry previous entry of the binary
-* @param size size of the .text section
-* @param new_entry new entry of the binary
-*/
-void		write_inject_fd(int fd, Elf64_Addr old_entry, long size, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr offset)
+void		write_inject_fd(int fd, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr)
 {
-	(void)offset;
-	(void)vaddr;
-	int				jmp_addr;
-	uint64_t		key;
+	uint64_t	key;
 
-	write(fd, INJECT, INJECT_SIZE - ((8 + 8 + 8 + 8 + 8)));
-//	write(fd, &offset, 8);
-	printf("%ld\n", vaddr);
-	printf("%ld\n", offset);
-	printf("%ld\n", size);
-	write(fd, &old_entry, 8);
-	write(fd, &size, 8);
+	write(fd, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 5));
+	write(fd, &vaddr, sizeof(uint64_t));
+	write(fd, &text->sh_offset, sizeof(uint64_t));
+	write(fd, &text->sh_size, sizeof(uint64_t));
+	write(fd, &new_entry, sizeof(uint64_t));
 	key = 0x123456789;
-	write(fd, &key, 8);
-	jmp_addr = INJECT_SIZE - (8 + 8 + 8 + 8 + 8);
-	write(fd, &jmp_addr, 8);
-	write(fd, &new_entry, 8);
-//	write(fd, JMP, 1);
-//	jmp_addr = old_entry - (new_entry + PAYLOAD_SIZE);
-//	write(fd, &jmp_addr, sizeof(int));
+	write(fd, &key, sizeof(uint64_t));
 
 }
 
@@ -162,34 +143,7 @@ int			write_injection(int fd, void *addr, int size, Elf64_Phdr *segment, int typ
 	ptr = addr + text->sh_offset + text->sh_size;
 	write(fd, ptr, ((unsigned long)addr + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr);
 	ptr = addr + segment->p_offset + segment->p_memsz;
-//	write_inject_fd(fd, header->e_entry, text->sh_size, new_entry);
-//	write_inject_fd(fd, header->e_entry, text->sh_size, new_entry, segment->p_vaddr, segment->p_offset);
-// -----------------------------------
-	uint64_t	offset;
-	uint64_t	key;
-//	int			jmp_addr;
-
-	write(fd, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 4));
-	offset = segment->p_vaddr + text->sh_offset;
-	offset -= (offset % 4096);
-	write(fd, &offset, sizeof(uint64_t));
-	offset = segment->p_vaddr + text->sh_offset;
-	write(fd, &offset, sizeof(uint64_t));
-//	uint64_t filesz;
-//	filesz = segment->p_filesz + INJECT_SIZE;
-	write(fd, &text->sh_size, sizeof(uint64_t));
-	printf("%ld\n", text->sh_size);
-	printf("%ld\n", text->sh_offset + text->sh_size);
-	key = 0x123456789;
-	write(fd, &key, sizeof(uint64_t));
-//	jmp_addr = new_entry;
-//	jmp_addr = header->e_entry - (new_entry + (INJECT_SIZE - ((sizeof(uint64_t) * 4))));
-//	write(fd, &JMP, 1);
-//	write(fd, &jmp_addr, sizeof(int));
-//	jmp_addr = INJECT_SIZE - (8 + 8/* + 8 + 8 + 8*/);
-//	write(fd, &jmp_addr, 8);
-//	write(fd, &new_entry, 8);
-// --------------------------------------
+	write_inject_fd(fd, text, new_entry, segment->p_vaddr);
 	if (type ==  ADD_PADDING)
 	{
 		Elf64_Phdr		*segments;
@@ -237,8 +191,8 @@ int			create_woody_file(void *addr, int size)
 	Elf64_Phdr		*next;
 
 	header = addr;
-	if (header->e_type != ET_EXEC)
-		printf("NOT EXECUTABLE ???????? %d\n", header->e_type);
+	if (header->e_type != ET_EXEC && header->e_type != ET_DYN) // TODO: ERROR NOT EXEC ? (Check every possible exec)
+		printf("NOT EXECUTABLE -> 0x%0x\n", header->e_type);
 	segments = addr + header->e_phoff;
 	i = 0;
 	load_segment = NULL;
@@ -254,6 +208,7 @@ int			create_woody_file(void *addr, int size)
 		next = (i < header->e_phnum - 1) ? segments + 1 : NULL;
 		i++;
 	}
+	// TODO: do it first with malloc/mmap, and then paste in it to avoid scribble shit
 	fd = open("woody", O_CREAT | O_TRUNC | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	if (segments->p_type == PT_LOAD && next->p_type == PT_LOAD && segments->p_offset + segments->p_memsz + INJECT_SIZE <= next->p_offset + segments->p_offset)
 		write_injection(fd, addr, size, segments, 0);

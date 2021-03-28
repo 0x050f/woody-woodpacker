@@ -2,66 +2,58 @@ section.text:
 	global _start:function
 
 _start:
-	push rdx
-	jmp _message
-
-_inject:
-	mov rax, 1 ; write
-	mov rdi, 1
-	pop rsi
-	mov rdx, 0
-	_count_char:
-		cmp byte [rsi + rdx], 0x0
-		jz _end_count_char
-		inc rdx
-		jmp _count_char
-	_end_count_char:
-	syscall
-	jmp _unpack
-
-_message:
-	call _inject
+	call _inject ; push addr to stack
 	db `....WOODY....\n`, 0x0
 
-
-_unpack:
-	mov rax, 10 ; mprotect
-	mov rdi, [rel paged_offset]
-	mov rsi, [rel offset]
-	sub rsi, rdi
-	mov rdx, [rel size]
-	add rsi, rdx
-	mov rdx, 0x7 ; PROT_READ | PROT_WRITE
-	syscall
-
-	mov rax, [rel offset]
-	mov rcx, [rel size]
-	add rcx, rax
-	mov rdx, [rel key]
-	_loop_xor:
-		cmp rax, rcx
-		jz _end_loop_xor
-		xor byte[rax], dl
-		ror rdx, 8
+_ft_strlen:
+	mov rax, 0
+	_count_char:
+		cmp byte [rsi + rax], 0
+		jz _end_count_char
 		inc rax
-		jmp _loop_xor
-	_end_loop_xor:
+		jmp _count_char
+	_end_count_char:
+	ret
 
-	mov rax, 10 ; mprotect
-	mov rdi, [rel paged_offset]
-	mov rsi, [rel offset]
-	sub rsi, rdi
-	mov rdx, [rel size]
-	add rsi, rdx
-	mov rdx, 0x5 ; PROT_READ | PROT_EXEC
+_inject:
+	pop rsi ; pop addr from stack
+	push rdx ; save register
+
+	call _ft_strlen
+	mov rdx, rax
+	mov rax, 1 ; write
+	mov rdi, 1
 	syscall
 
-	mov rax, [rel offset]
-	pop rdx
+	sub rsi, 0x5 ; sub size of call instruction
+
+	mov rax, 10 ; mprotect
+	mov rdi, rsi
+	mov rsi, [rel new_entry]
+	sub rsi, [rel vaddr]
+	sub rdi, rsi
+	mov rdx, 0x7 ; PROT_READ | PROT_WRITE | PROT_EXEC
+	syscall
+
+	mov rax, rdi
+	add rax, [rel offset]
+	mov rcx, 0
+	mov rdx, [rel key]
+	_decrypt:
+		cmp rcx, [rel size]
+		jz _end_decrypt
+		xor byte[rax + rcx], dl
+		ror rdx, 8
+		inc rcx
+		jmp _decrypt
+	_end_decrypt:
+
+	pop rdx ; get register
 	jmp rax
 
 _params_xor:
-	paged_offset dq 0x9999999999999999
+	vaddr dq 0x9999999999999999
 	offset dq 0xAAAAAAAAAAAAAAAA
 	size dq 0xBBBBBBBBBBBBBBBB
+	new_entry dq 0xDDDDDDDDDDDDDDDE
 	key dq 0xCCCCCCCCCCCCCCCC

@@ -5,6 +5,7 @@ SHELL=/bin/bash
 _RED		=	\e[31m
 _GREEN		=	\e[32m
 _YELLOW		=	\e[33m
+_BLUE		=	\e[34m
 _END		=	\e[0m
 
 # COMPILATION #
@@ -54,8 +55,8 @@ debug:			all
 # VARIABLES RULES #
 
 $(NAME):		$(OBJS_ASM) $(OBJS)
-				@printf "\033[2K\r$(_GREEN) All files compiled into '$(DIR_OBJS)'. $(_END)✅\n"
-				@clang $(CC_FLAGS) -I $(DIR_HEADERS) $(OBJS) -o $(NAME)
+				@printf "\033[2K\r$(_BLUE) All files compiled into '$(DIR_OBJS)'. $(_END)✅\n"
+				@gcc $(CC_FLAGS) -I $(DIR_HEADERS) $(OBJS) -o $(NAME)
 				@printf "\033[2K\r$(_GREEN) Executable '$(NAME)' created. $(_END)✅\n"
 
 # COMPILED_SOURCES RULES #
@@ -66,7 +67,7 @@ $(OBJS_ASM):	| $(DIR_OBJS_ASM)
 
 $(DIR_OBJS)%.o: $(DIR_SRCS)%.c
 				@printf "\033[2K\r $(_YELLOW)Compiling $< $(_END)⌛ "
-				@clang $(CC_FLAGS) -D INJECT=\"$(shell $(INJECT))\" -D INJECT_SIZE=$(shell $(SIZE_INJECT)) -I $(DIR_HEADERS) -c $< -o $@
+				@gcc $(CC_FLAGS) -D INJECT=\"$(shell $(INJECT))\" -D INJECT_SIZE=$(shell $(SIZE_INJECT)) -I $(DIR_HEADERS) -c $< -o $@
 
 $(DIR_OBJS_ASM)%.o: $(DIR_SRCS)%.s
 				@printf "\033[2K\r $(_YELLOW)Compiling $< $(_END)⌛ "
