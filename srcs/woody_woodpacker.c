@@ -41,7 +41,7 @@ char		*xor_encrypt(char *input, size_t input_len, uint64_t key)
 	return (encrypt);
 }
 
-void		write_inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry)
+void		inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry)
 {
 	uint64_t	key;
 
@@ -86,7 +86,7 @@ void		*write_new_segment_sz(void *ptr_src, void **ptr_dst, Elf64_Phdr *segment)
 	return (ptr_src);
 }
 
-void		*add_padding_segments(void *addr, void *ptr_src, void **ptr_dst, Elf64_Phdr *segment_inject)
+void		*add_padding_segments(void *addr, void *ptr_src, void **ptr_dst, Elf64_Phdr *segment)
 {
 	Elf64_Phdr		*segments;
 	Elf64_Ehdr		*header;
@@ -97,7 +97,7 @@ void		*add_padding_segments(void *addr, void *ptr_src, void **ptr_dst, Elf64_Phd
 	shoff = header->e_shoff + PAGE_SIZE;
 	for (int i = 0; i < header->e_phnum; i++)
 	{
-		if (segments[i].p_offset > (unsigned long)segment_inject->p_offset + segment_inject->p_filesz)
+		if (segments[i].p_offset > (unsigned long)segment->p_offset + segment->p_filesz)
 		{
 			shoff = segments[i].p_offset + PAGE_SIZE;
 			ft_memcpy(*ptr_dst, ptr_src, (unsigned long)&segments[i].p_offset - (unsigned long)ptr_src);
@@ -106,13 +106,36 @@ void		*add_padding_segments(void *addr, void *ptr_src, void **ptr_dst, Elf64_Phd
 			*ptr_dst += sizeof(shoff);
 			ptr_src = (void *)&segments[i].p_offset + sizeof(segments[i].p_offset);
 		}
-		else if ((unsigned long)&segments[i] == (unsigned long)segment_inject)
-			ptr_src = write_new_segment_sz(ptr_src, ptr_dst, segment_inject);
+		else if ((unsigned long)&segments[i] == (unsigned long)segment)
+			ptr_src = write_new_segment_sz(ptr_src, ptr_dst, segment);
 	}
 	return (ptr_src);
 }
 
-int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int type)
+void		*add_padding_sections(void *addr, void *ptr_src, void **ptr_dst, Elf64_Phdr *segment)
+{
+	Elf64_Ehdr		*header;
+	Elf64_Shdr		*sections;
+	Elf64_Off		shoff;
+
+	header = addr;
+	sections = addr + header->e_shoff;
+	for (int i = 0; i < header->e_shnum; i++)
+	{
+		if ((unsigned long)sections[i].sh_offset > (unsigned long)segment->p_offset + segment->p_filesz)
+		{
+			shoff = sections[i].sh_offset + PAGE_SIZE;
+			ft_memcpy(*ptr_dst, ptr_src, (unsigned long)&sections[i].sh_offset - (unsigned long)ptr_src);
+			*ptr_dst += (unsigned long)&sections[i].sh_offset - (unsigned long)ptr_src;
+			ft_memcpy(*ptr_dst, &shoff, sizeof(shoff));
+			*ptr_dst += sizeof(shoff);
+			ptr_src = (void *)&sections[i].sh_offset + sizeof(sections[i].sh_offset);
+		}
+	}
+	return (ptr_src);
+}
+
+int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int type)
 {
 	void			*ptr_src;
 	void			*ptr_dst;
@@ -130,11 +153,9 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 	ft_memcpy(ptr_dst, &new_entry, sizeof(new_entry));
 	ptr_dst += sizeof(new_entry);
 	ptr_src = (void *)&header->e_entry + sizeof(header->e_entry);
-	Elf64_Shdr		*sections;
 	Elf64_Off		shoff;
 //	size_t			payload_vaddr;
 
-	sections = src + header->e_shoff;
 //	payload_vaddr = segment->p_vaddr + segment->p_filesz;
 	if (type == ADD_PADDING)
 	{
@@ -163,7 +184,7 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src;
 	ptr_src = src + segment->p_offset + segment->p_memsz;
-	write_inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry);
+	inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry);
 	if (type ==  ADD_PADDING)
 	{
 		Elf64_Phdr		*segments;
@@ -173,18 +194,7 @@ int			write_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int 
 		ft_memset(ptr_dst, 0, PAGE_SIZE - (diff % PAGE_SIZE));
 		ptr_dst += PAGE_SIZE - (diff % PAGE_SIZE);
 		ptr_src = src + segments->p_offset;
-		for (int i = 0; i < header->e_shnum; i++)
-		{
-			if ((unsigned long)sections[i].sh_offset > (unsigned long)segment->p_offset + segment->p_filesz)
-			{
-				shoff = sections[i].sh_offset + PAGE_SIZE;
-				ft_memcpy(ptr_dst, ptr_src, (unsigned long)&sections[i].sh_offset - (unsigned long)ptr_src);
-				ptr_dst += (unsigned long)&sections[i].sh_offset - (unsigned long)ptr_src;
-				ft_memcpy(ptr_dst, &shoff, sizeof(shoff));
-				ptr_dst += sizeof(shoff);
-				ptr_src = (void *)&sections[i].sh_offset + sizeof(sections[i].sh_offset);
-			}
-		}
+		ptr_src = add_padding_sections(src, ptr_src, &ptr_dst, segment);
 	}
 	else
 		ptr_src += INJECT_SIZE;
@@ -233,39 +243,28 @@ int			create_woody_file(void *addr, long size)
 	int				type;
 	Elf64_Ehdr		*header;
 	Elf64_Phdr		*segments;
-	Elf64_Phdr		*load_segment;
 	Elf64_Phdr		*next;
 
 	header = addr;
-	if (header->e_type != ET_EXEC && header->e_type != ET_DYN) // TODO: ERROR NOT EXEC ? (Check every possible exec)
-		return (EINVAL);
 	segments = addr + header->e_phoff;
-	i = 0;
-	load_segment = NULL;
-	next = (i < header->e_phnum - 1) ? segments + 1 : NULL;
-	while (i < header->e_phnum)
+	next = (header->e_phnum > 1) ? segments + 1 : NULL;
+	for (i = 0; i < header->e_phnum; i++)
 	{
-		if (segments->p_type == PT_LOAD && next->p_type == PT_LOAD && segments->p_flags & PF_X)
-		{
-			load_segment = segments;
+		if (segments->p_type == PT_LOAD && next && next->p_type == PT_LOAD && segments->p_flags & PF_X)
 			break;
-		}
 		segments = (i < header->e_phnum) ? segments + 1 : NULL;
 		next = (i < header->e_phnum - 1) ? segments + 1 : NULL;
-		i++;
 	}
+	if (segments->p_type != PT_LOAD || !next || next->p_type != PT_LOAD)
+		return (-1); // TODO: error
 	// TODO: do it first with malloc/mmap, and then paste in it to avoid scribble shit
-	if (segments->p_type == PT_LOAD && next->p_type == PT_LOAD && segments->p_offset + segments->p_memsz + INJECT_SIZE <= next->p_offset + segments->p_offset)
-		type = 0;
-	else
+	type = 0;
+	if (segments->p_offset + segments->p_memsz + INJECT_SIZE > next->p_offset + segments->p_offset)
 		type = ADD_PADDING;
 	size_dst = get_size_needed(addr, size, type);
 	if (!(dst = malloc(size_dst)))
-		return (1); // TODO: error malloc
-	if (type == ADD_PADDING)
-		write_injection(addr, dst, size, load_segment, type);
-	else
-		write_injection(addr, dst, size, segments, 0);
+		return (-1); // TODO: error malloc
+	create_injection(addr, dst, size, segments, type);
 	ret = write_file("woody", dst, size_dst);
 	free(dst);
 	if (ret)
@@ -329,7 +328,7 @@ int			woody_woodpacker(char *filename)
 	if (size < 0)
 	{
 		close(fd);
-		if (!errno) // Don't know why it doesn't fill errno in this case
+		if (!errno)
 			errno = EINVAL;
 		return (errno);
 	}
