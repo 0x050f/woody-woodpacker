@@ -23,6 +23,7 @@
 # define PAGE_SIZE 0x1000
 
 /* utils.c */
+char		*ft_strjoin(char const *s1, char const *s2);
 size_t		ft_strlen(const char *s);
 int			ft_strcmp(const char *s1, const char *s2);
 void		*ft_memset(void *b, int c, size_t len);

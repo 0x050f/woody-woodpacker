@@ -26,6 +26,195 @@ void		*get_text_section(void *addr)
 	return (&sections[i]);
 }
 
+typedef struct	s_node
+{
+	unsigned char	c;
+	unsigned int	freq;
+	void			*right;
+	void			*left;
+}				t_node;
+
+typedef struct	s_nodelst
+{
+	t_node		*node;
+	void		*next;
+}				t_nodelst;
+
+t_node		*new_node(unsigned char c, unsigned int freq)
+{
+	t_node	*node;
+
+	node = malloc(sizeof(t_node));
+	if (!node)
+		return (NULL);
+	node->c = c;
+	node->freq = freq;
+	node->left = NULL;
+	node->right = NULL;
+	return (node);
+}
+
+t_nodelst	*new_nodelst(t_node *node)
+{
+	t_nodelst	*lst;
+
+	lst = malloc(sizeof(t_nodelst));
+	if (!lst)
+		return (NULL);
+	lst->node = node;
+	lst->next = NULL;
+	return (lst);
+}
+
+void		add_nodelst(t_nodelst **nodes, t_node *node) // add croissant
+{
+	t_nodelst	*prev;
+	t_nodelst	*ptr;
+	t_nodelst	*new;
+
+	new = new_nodelst(node);
+	ptr = *nodes;
+	prev = NULL;
+	while (ptr && ptr->node->freq < node->freq)
+	{
+		prev = ptr;
+		ptr = ptr->next;
+	}
+	if (prev)
+		prev->next = new;
+	else
+		*nodes = new;
+	new->next = ptr;
+}
+
+void		remove_nodelst(t_nodelst **nodes, t_node *node)
+{
+	t_nodelst	*ptr;
+	t_nodelst	*prev;
+
+	ptr = *nodes;
+	prev = NULL;
+	while (ptr && ptr->node != node)
+	{
+		prev = ptr;
+		ptr = ptr->next;
+	}
+	if (ptr)
+	{
+		if (prev)
+			prev->next = ptr->next;
+		else if (ptr->next)
+			*nodes = ptr->next;
+		else
+			*nodes = NULL;
+		free(ptr);
+	}
+}
+
+void	print_binary_tree(t_node	*x, int n)
+{
+	int i;
+
+	i = n;
+	if (x->left)
+		print_binary_tree(x->left, n + 1);
+	while (i--)
+		printf("   ");
+	printf("%d\n", x->freq);
+	if (x->right)
+		print_binary_tree(x->right, n + 1);
+}
+
+int		print_translation(t_node	*x, char *string)
+{
+	int		ret;
+
+	ret = 0;
+	if (x->left)
+		ret += print_translation(x->left, ft_strjoin(string, "0"));
+	if (x->right)
+		ret += print_translation(x->right, ft_strjoin(string, "1"));
+	if (!x->right && !x->left)
+	{
+		printf("char ");
+		if (x->c > 31 && x->c < 127)
+			printf("'%c'", x->c);
+		else
+			printf("%d", x->c);
+		printf(": %d occurence - ", x->freq);
+		printf("%s\n", string);
+		ret = x->freq * ft_strlen(string);
+	}
+	free(string);
+	return (ret);
+}
+
+void		create_huffman_tree(int count[256])
+{
+	int			i;
+	t_nodelst	*nodes;
+//	t_nodelst	*ptr;
+
+	nodes = NULL;
+	i = 0;
+	while (i < 256)
+	{
+		if (count[i] != 0)
+			add_nodelst(&nodes, new_node(i, count[i]));
+		i++;
+	}
+	/*
+	ptr = nodes;
+	while (ptr)
+	{
+		printf("char ");
+		if (ptr->node->c > 31 && ptr->node->c < 127)
+			printf("'%c'", ptr->node->c);
+		else
+			printf("%d", ptr->node->c);
+		printf(": %d occurence\n", ptr->node->freq);
+		ptr = ptr->next;
+	}
+	*/
+	t_node	*left;
+	t_node	*right;
+	t_node	*tmp;
+	while (nodes->next)
+	{
+		left = nodes->node;
+		right = ((t_nodelst *)nodes->next)->node;
+		remove_nodelst(&nodes, left);
+		remove_nodelst(&nodes, right);
+		tmp = new_node(0, left->freq + right->freq);
+		tmp->left = left;
+		tmp->right = right;
+		add_nodelst(&nodes, tmp);
+	}
+//	print_binary_tree(nodes->node, 0);
+	int ret;
+	ret = print_translation(nodes->node, ft_strjoin("", ""));
+	printf("=== AFTER COMPRESSION\n");
+	printf("%d bits\n", ret);
+	printf("%d bytes\n", ret / 8);
+}
+
+void		compress(unsigned char *addr, size_t size)
+{
+	size_t	i;
+	int		count[256];
+
+	i = 0;
+	while (i < 256)
+		count[i++] = 0;
+	i = 0;
+	while (i < size)
+		count[(int)addr[i++]]++;
+	create_huffman_tree(count);
+	printf("=== BASE\n");
+	printf("%ld bits\n", size * 8);
+	printf("%ld bytes\n", size);
+}
+
 char		*xor_encrypt(char *input, size_t input_len, uint64_t key)
 {
 	size_t		i;
@@ -173,6 +362,7 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	Elf64_Shdr		*text;
 	text = get_text_section(src);
 	char			*encrypt;
+	compress(src + text->sh_offset, text->sh_size);
 	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, 0x123456789);
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src;
