@@ -22,6 +22,8 @@
 
 # define PAGE_SIZE 0x1000
 
+void		compress(unsigned char *addr, size_t size);
+
 /* utils.c */
 char		*ft_strjoin(char const *s1, char const *s2);
 size_t		ft_strlen(const char *s);
