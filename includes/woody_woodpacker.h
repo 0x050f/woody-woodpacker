@@ -22,7 +22,21 @@
 
 # define PAGE_SIZE 0x1000
 
-void		compress(unsigned char *addr, size_t size);
+typedef struct	s_compressed_char
+{
+	unsigned char	c;
+	int				bits;
+	char			nb_bits;
+}				t_compressed_char;
+
+typedef struct		s_compression
+{
+	char				*result;
+	int					nb_bits;
+	t_compressed_char	*table;
+}					t_compression;
+
+t_compression		*compress(unsigned char *addr, int size);
 
 /* utils.c */
 char		*ft_strjoin(char const *s1, char const *s2);

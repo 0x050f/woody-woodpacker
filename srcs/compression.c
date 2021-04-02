@@ -1,12 +1,5 @@
 #include "woody_woodpacker.h"
 
-typedef struct	s_compressed_char
-{
-	unsigned char	c;
-	int				bits;
-	char			nb_bits;
-}				t_compressed_char;
-
 typedef struct	s_node
 {
 	unsigned char	c;
@@ -92,97 +85,12 @@ void		remove_nodelst(t_nodelst **nodes, t_node *node)
 	}
 }
 
-void	print_binary_tree(t_node	*x, int n)
+t_node		*make_tree(t_nodelst *nodes)
 {
-	int i;
-
-	i = n;
-	if (x->left)
-		print_binary_tree(x->left, n + 1);
-	while (i--)
-		printf("   ");
-	printf("%d\n", x->freq);
-	if (x->right)
-		print_binary_tree(x->right, n + 1);
-}
-
-int			print_translation(t_node *x, char *string)
-{
-	int		ret;
-
-	ret = 0;
-	if (x->left)
-		ret += print_translation(x->left, ft_strjoin(string, "0"));
-	if (x->right)
-		ret += print_translation(x->right, ft_strjoin(string, "1"));
-	if (!x->right && !x->left)
-	{
-		printf("char ");
-		if (x->c > 31 && x->c < 127)
-			printf("'%c'", x->c);
-		else
-			printf("%d", x->c);
-		printf(": %d occurence - ", x->freq);
-		printf("%s\n", string);
-		ret = x->freq * ft_strlen(string);
-	}
-	free(string);
-	return (ret);
-}
-
-void		make_array_compressed_char(t_compressed_char **ptr, t_node *x, int bits, int nb_bits)
-{
-	if (x->left)
-		make_array_compressed_char(ptr, x->left, bits, nb_bits + 1);
-	if (x->right)
-	{
-		bits = (bits & ~(1 << (nb_bits + 1))) | (1 << (nb_bits + 1));
-		make_array_compressed_char(ptr, x->right, bits, nb_bits + 1);
-	}
-	if (!x->right && !x->left)
-	{
-		(*ptr)->c = x->c;
-		(*ptr)->bits = bits;
-		(*ptr)->nb_bits = nb_bits;
-		(*ptr)++;
-	}
-}
-
-void		create_huffman_tree(int count[256])
-{
-	int			i;
-	t_nodelst	*nodes;
-	t_nodelst	*tmp_nodes;
-//	t_nodelst	*ptr;
-
-	nodes = NULL;
-	i = 0;
-	while (i < 256)
-	{
-		if (count[i] != 0)
-			add_nodelst(&nodes, new_node(i, count[i]));
-		i++;
-	}
-	i = 0;
-	tmp_nodes = nodes;
-	while (tmp_nodes->next && ++i)
-		tmp_nodes = tmp_nodes->next;
-	/*
-	ptr = nodes;
-	while (ptr)
-	{
-		printf("char ");
-		if (ptr->node->c > 31 && ptr->node->c < 127)
-			printf("'%c'", ptr->node->c);
-		else
-			printf("%d", ptr->node->c);
-		printf(": %d occurence\n", ptr->node->freq);
-		ptr = ptr->next;
-	}
-	*/
 	t_node	*left;
 	t_node	*right;
 	t_node	*tmp;
+
 	while (nodes->next)
 	{
 		left = nodes->node;
@@ -194,37 +102,86 @@ void		create_huffman_tree(int count[256])
 		tmp->right = right;
 		add_nodelst(&nodes, tmp);
 	}
-//	print_binary_tree(nodes->node, 0);
-//	int ret;
-	t_compressed_char	*compressed_chars;
-	t_compressed_char	*ptr;
-	
-	compressed_chars = malloc(sizeof(t_compressed_char) * i);
-	if (!compressed_chars)
-		return ; // TODO: error
-	ptr = compressed_chars;
-	make_array_compressed_char(&ptr, nodes->node, 0, 0);
-	int n;
-	n = 0;
-	while (n < i)
-	{
-		if (compressed_chars[n].c > 31 && compressed_chars[n].c < 127)
-			printf("'%c'", compressed_chars[n].c);
-		else
-			printf("%d", compressed_chars[n].c);
-		printf(": %d - %d\n", compressed_chars[n].bits, compressed_chars[n].nb_bits);;
-		n++;
-	}
-//	ret = print_translation(nodes->node, ft_strjoin("", ""));
-//	printf("=== AFTER COMPRESSION\n");
-//	printf("%d bits\n", ret);
-//	printf("%d bytes\n", ret / 8);
+	tmp = nodes->node;
+	free(nodes);
+	return (tmp);
 }
 
-void		compress(unsigned char *addr, size_t size)
+t_compressed_char		*find_compressed_char(unsigned char to_find, t_compressed_char *compress, int size)
 {
-	size_t	i;
-	int		count[256];
+	int		i;
+
+	i = 0;
+	while (i < size)
+	{
+		if (compress[i].c == to_find)
+			return (&compress[i]);
+		i++;
+	}
+	return (NULL);
+}
+
+void		print_binary(t_compressed_char *compress)
+{
+	int		i;
+
+	i = 0;
+	while (i < compress->nb_bits)
+	{
+		if (compress->bits & (1 << (8 * 4 - i)))
+			printf("1");
+		else printf("0");
+		i++;
+	}
+}
+
+// RETURN TOTAL_SIZE
+int			make_array_compressed_char(t_compressed_char **ptr, t_node *x, int bits, int nb_bits)
+{
+	int		ret;
+
+	ret = 0;
+	if (x->left)
+		ret += make_array_compressed_char(ptr, x->left, bits, nb_bits + 1);
+	if (x->right)
+	{
+		bits = (bits | (1 << (8 * 4 - nb_bits)));
+		ret += make_array_compressed_char(ptr, x->right, bits, nb_bits + 1);
+	}
+	if (!x->right && !x->left)
+	{
+		ret = nb_bits * x->freq;
+		(*ptr)->c = x->c;
+		(*ptr)->bits = bits;
+		(*ptr)->nb_bits = nb_bits;
+		(*ptr)++;
+	}
+	return (ret);
+}
+
+t_node		*create_huffman_tree(int count[256])
+{
+	int			i;
+	t_nodelst	*nodes;
+
+	nodes = NULL;
+	i = 0;
+	while (i < 256)
+	{
+		if (count[i] != 0)
+			add_nodelst(&nodes, new_node(i, count[i]));
+		i++;
+	}
+	return (make_tree(nodes));
+}
+
+t_compression		*compress(unsigned char *addr, int size)
+{
+	int				i;
+	int				n;
+	int				count[256];
+	t_node			*root;
+	t_compression	*compression;
 
 	i = 0;
 	while (i < 256)
@@ -232,8 +189,50 @@ void		compress(unsigned char *addr, size_t size)
 	i = 0;
 	while (i < size)
 		count[(int)addr[i++]]++;
-	create_huffman_tree(count);
+	n = 0;
+	i = 0;
+	while (i < 256)
+	{
+		if (count[i++])
+			n++;
+	}
+	root = create_huffman_tree(count);
+	t_compressed_char	*compressed_chars;
+	t_compressed_char	*ptr;
+	
+	compressed_chars = malloc(sizeof(t_compressed_char) * (n + 1));
+	if (!compressed_chars)
+		return (NULL); // TODO: error
+	ptr = compressed_chars;
+	compression = malloc(sizeof(t_compression));
+	if (!compression)
+		return (NULL);
+	compression->nb_bits = make_array_compressed_char(&ptr, root, 0, 0);
+	compression->result = malloc(compression->nb_bits / 8 + (compression->nb_bits % 8 != 0));
+	if (!compression->compress)
+		return (NULL); //TODO: error
+	compression->table = compressed_chars;
+	i = 0;
+	while (i < n)
+	{
+		if (compressed_chars[i].c > 31 && compressed_chars[i].c < 127)
+			printf("'%c'", compressed_chars[i].c);
+		else
+			printf("%d", compressed_chars[i].c);
+		printf(": ");
+		print_binary(&compressed_chars[i]);
+		printf("\n");
+		i++;
+	}
+	i = 0;
+	while (i < size)
+	{
+		ptr = find_compressed_char(addr[i++], compressed_chars, n);
+	}
+	compression->result
+	printf("new_size: %d bits - %d bytes\n", compression->nb_bits, compression->nb_bits / 8);
 	printf("=== BASE\n");
-	printf("%ld bits\n", size * 8);
-	printf("%ld bytes\n", size);
+	printf("%d bits\n", size * 8);
+	printf("%d bytes\n", size);
+	return (compression);
 }
