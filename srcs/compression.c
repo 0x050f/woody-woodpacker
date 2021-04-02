@@ -209,7 +209,7 @@ t_compression		*compress(unsigned char *addr, int size)
 		return (NULL);
 	compression->nb_bits = make_array_compressed_char(&ptr, root, 0, 0);
 	compression->result = malloc(compression->nb_bits / 8 + (compression->nb_bits % 8 != 0));
-	if (!compression->compress)
+	if (!compression->result)
 		return (NULL); //TODO: error
 	compression->table = compressed_chars;
 	i = 0;
@@ -225,11 +225,50 @@ t_compression		*compress(unsigned char *addr, int size)
 		i++;
 	}
 	i = 0;
+	while (i < compression->nb_bits / 8 + (compression->nb_bits % 8 != 0))
+		compression->result[i++] = 0;
+	int bit;
+	int bit_p;
+	int j;
+	int k;
+	i = 0;
+	j = 0;
+	k = 0;
+	bit_p = 0;
 	while (i < size)
 	{
 		ptr = find_compressed_char(addr[i++], compressed_chars, n);
+		k = 0;
+		while (k < ptr->nb_bits)
+		{
+			bit = ptr->bits & (1 << (8 * 4 - k));
+//			printf("bit %d\n", bit);
+			if (k - bit_p > 0)
+			{
+//				printf("left shift\n");
+				bit = bit << (k - bit_p);
+			}
+			else if (k - bit_p < 0)
+			{
+//				printf("right shift\n");
+//				printf("bit_p %d\n", bit_p);
+//				printf("k %d\n", k);
+				bit = (unsigned int)bit >> (bit_p - k);
+			}
+//			printf("bit 2 %d\n", bit);
+			bit = (unsigned int)bit >> (8 * 3);
+//			printf("bit 3 %d\n", bit);
+			compression->result[j] = compression->result[j] | bit;
+			bit_p++;
+			if (bit_p == 8)
+			{
+				bit_p = 0;
+				j++;
+			}
+			k++;
+		}
 	}
-	compression->result
+	write(1, compression->result, compression->nb_bits / 8);
 	printf("new_size: %d bits - %d bytes\n", compression->nb_bits, compression->nb_bits / 8);
 	printf("=== BASE\n");
 	printf("%d bits\n", size * 8);
