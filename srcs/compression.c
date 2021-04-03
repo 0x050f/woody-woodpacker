@@ -111,28 +111,12 @@ t_compressed_char		*find_compressed_char(unsigned char to_find, t_compressed_cha
 {
 	int		i;
 
-	i = 0;
-	while (i < size)
+	for (i = 0; i < size; i++)
 	{
 		if (compress[i].c == to_find)
 			return (&compress[i]);
-		i++;
 	}
 	return (NULL);
-}
-
-void		print_binary(t_compressed_char *compress)
-{
-	int		i;
-
-	i = 0;
-	while (i < compress->nb_bits)
-	{
-		if (compress->bits & (1 << (8 * 4 - i)))
-			printf("1");
-		else printf("0");
-		i++;
-	}
 }
 
 // RETURN TOTAL_SIZE
@@ -165,14 +149,51 @@ t_node		*create_huffman_tree(int count[256])
 	t_nodelst	*nodes;
 
 	nodes = NULL;
-	i = 0;
-	while (i < 256)
+	for (i = 0; i < 256; i++)
 	{
-		if (count[i] != 0)
+		if (count[i])
 			add_nodelst(&nodes, new_node(i, count[i]));
-		i++;
 	}
 	return (make_tree(nodes));
+}
+
+char		*apply_huffman(unsigned char *addr, int size, t_compression *compression)
+{
+	int					i;
+	int					j;
+	int					k;
+	int					bit;
+	int					bit_p;
+	char				*result;
+	t_compressed_char	*ptr;
+
+	result = malloc(compression->nb_bits / 8 + (compression->nb_bits % 8 != 0));
+	if (!result)
+		return (NULL); // TODO: handle error malloc
+	ft_memset(result, 0, compression->nb_bits / 8 + (compression->nb_bits % 8 != 0));
+	j = 0;
+	bit_p = 0;
+	for (i = 0; i < size; i++)
+	{
+		ptr = find_compressed_char(addr[i], compression->table, compression->size_table);
+		for (k = 0; k < ptr->nb_bits; k++)
+		{
+			bit = ptr->bits & (1 << (8 * 4 - k));
+			if (k - bit_p > 0)
+				bit = bit << (k - bit_p);
+			else if (k - bit_p < 0)
+				bit = (unsigned int)bit >> (bit_p - k);
+			bit = (unsigned int)bit >> (8 * 3);
+			result[j] |= bit;
+			bit_p++;
+			if (bit_p == 8)
+			{
+				bit_p = 0;
+				j++;
+			}
+		}
+	}
+	return (result);
 }
 
 t_compression		*compress(unsigned char *addr, int size)
@@ -183,18 +204,13 @@ t_compression		*compress(unsigned char *addr, int size)
 	t_node			*root;
 	t_compression	*compression;
 
-	i = 0;
-	while (i < 256)
-		count[i++] = 0;
-	i = 0;
-	while (i < size)
-		count[(int)addr[i++]]++;
 	n = 0;
-	i = 0;
-	while (i < 256)
+	ft_memset(count, 0, 256 * sizeof(int));
+	for (i = 0; i < size; i++)
 	{
-		if (count[i++])
+		if (!count[(int)addr[i]])
 			n++;
+		count[(int)addr[i]]++;
 	}
 	root = create_huffman_tree(count);
 	t_compressed_char	*compressed_chars;
@@ -203,75 +219,13 @@ t_compression		*compress(unsigned char *addr, int size)
 	compressed_chars = malloc(sizeof(t_compressed_char) * (n + 1));
 	if (!compressed_chars)
 		return (NULL); // TODO: error
-	ptr = compressed_chars;
 	compression = malloc(sizeof(t_compression));
 	if (!compression)
 		return (NULL);
+	ptr = compressed_chars;
 	compression->nb_bits = make_array_compressed_char(&ptr, root, 0, 0);
-	compression->result = malloc(compression->nb_bits / 8 + (compression->nb_bits % 8 != 0));
-	if (!compression->result)
-		return (NULL); //TODO: error
 	compression->table = compressed_chars;
-	i = 0;
-	while (i < n)
-	{
-		if (compressed_chars[i].c > 31 && compressed_chars[i].c < 127)
-			printf("'%c'", compressed_chars[i].c);
-		else
-			printf("%d", compressed_chars[i].c);
-		printf(": ");
-		print_binary(&compressed_chars[i]);
-		printf("\n");
-		i++;
-	}
-	i = 0;
-	while (i < compression->nb_bits / 8 + (compression->nb_bits % 8 != 0))
-		compression->result[i++] = 0;
-	int bit;
-	int bit_p;
-	int j;
-	int k;
-	i = 0;
-	j = 0;
-	k = 0;
-	bit_p = 0;
-	while (i < size)
-	{
-		ptr = find_compressed_char(addr[i++], compressed_chars, n);
-		k = 0;
-		while (k < ptr->nb_bits)
-		{
-			bit = ptr->bits & (1 << (8 * 4 - k));
-//			printf("bit %d\n", bit);
-			if (k - bit_p > 0)
-			{
-//				printf("left shift\n");
-				bit = bit << (k - bit_p);
-			}
-			else if (k - bit_p < 0)
-			{
-//				printf("right shift\n");
-//				printf("bit_p %d\n", bit_p);
-//				printf("k %d\n", k);
-				bit = (unsigned int)bit >> (bit_p - k);
-			}
-//			printf("bit 2 %d\n", bit);
-			bit = (unsigned int)bit >> (8 * 3);
-//			printf("bit 3 %d\n", bit);
-			compression->result[j] = compression->result[j] | bit;
-			bit_p++;
-			if (bit_p == 8)
-			{
-				bit_p = 0;
-				j++;
-			}
-			k++;
-		}
-	}
-	write(1, compression->result, compression->nb_bits / 8);
-	printf("new_size: %d bits - %d bytes\n", compression->nb_bits, compression->nb_bits / 8);
-	printf("=== BASE\n");
-	printf("%d bits\n", size * 8);
-	printf("%d bytes\n", size);
+	compression->size_table = n;
+	compression->result = apply_huffman(addr, size, compression);
 	return (compression);
 }

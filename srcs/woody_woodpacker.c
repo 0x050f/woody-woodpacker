@@ -173,7 +173,6 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	Elf64_Shdr		*text;
 	text = get_text_section(src);
 	char			*encrypt;
-	compress(src + text->sh_offset, text->sh_size);
 	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, 0x123456789);
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src;
@@ -203,10 +202,32 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	return (0);
 }
 
-long		get_size_needed(void *addr, long size, int type)
+long		get_size_needed(void *addr, long size, Elf64_Phdr *segment, int *type)
 {
+	Elf64_Phdr *next;
+
+	next = segment + 1;
+	if (segment->p_offset + segment->p_memsz + INJECT_SIZE > next->p_offset + segment->p_offset)
+		*type = ADD_PADDING;
+// --------------------
+	Elf64_Shdr		*text;
+	t_compression	*compression;
+
+	text = get_text_section(addr);
+	compression = compress(addr + text->sh_offset, text->sh_size);
+// --------------------
+	int size_diff = sizeof(int) + compression->size_table * (1 + 1 + 2);
+	printf("segment->ph_size %ld\n", segment->p_filesz);
+	printf("text->sh_size %ld\n", text->sh_size);
+	printf("moins %d\n", (compression->nb_bits / 8) + (compression->nb_bits % 8 != 0));
+	size_dst -= text->sh_size - (compression->nb_bits / 8) + (compression->nb_bits % 8 != 0);
+	size_dst += sizeof(int); // nb_bits TODO: put in payload, rm here
+	printf("%d\n", compression->size_table);
+	size_dst += compression->size_table * (1 + 1 + 2); // char + nb_bit + bit_representation
+	printf("%ld\n", size_dst);
+// --------------------
 	(void)addr;
-	if (type == ADD_PADDING)
+	if (*type == ADD_PADDING)
 	{
 		size += ((INJECT_SIZE / PAGE_SIZE) + 1) * PAGE_SIZE;
 	}
@@ -260,12 +281,12 @@ int			create_woody_file(void *addr, long size)
 		return (-1); // TODO: error
 	// TODO: do it first with malloc/mmap, and then paste in it to avoid scribble shit
 	type = 0;
-	if (segments->p_offset + segments->p_memsz + INJECT_SIZE > next->p_offset + segments->p_offset)
-		type = ADD_PADDING;
-	size_dst = get_size_needed(addr, size, type);
+	size_dst = get_size_needed(addr, size, &type);
+	// TODO: padding
 	if (!(dst = malloc(size_dst)))
 		return (-1); // TODO: error malloc
 	create_injection(addr, dst, size, segments, type);
+	free(compression); //
 	ret = write_file("woody", dst, size_dst);
 	free(dst);
 	if (ret)

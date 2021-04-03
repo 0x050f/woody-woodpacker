@@ -34,6 +34,7 @@ typedef struct		s_compression
 	char				*result;
 	int					nb_bits;
 	t_compressed_char	*table;
+	int					size_table;
 }					t_compression;
 
 t_compression		*compress(unsigned char *addr, int size);
