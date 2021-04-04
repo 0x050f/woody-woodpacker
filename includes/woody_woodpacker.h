@@ -8,6 +8,8 @@
 # include <stdlib.h>
 # include <string.h>
 # include <sys/mman.h>
+# include <syscall.h>
+# include <time.h>
 # include <unistd.h>
 
 # ifndef INJECT
@@ -24,6 +26,8 @@
 
 /* utils.c */
 
+void		ft_srand(unsigned int seed);
+int			ft_rand(void); // RAND_MAX assumed to be 32767
 size_t		ft_strlen(const char *s);
 int			ft_strcmp(const char *s1, const char *s2);
 void		*ft_memset(void *b, int c, size_t len);

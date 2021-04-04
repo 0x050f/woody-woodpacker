@@ -26,25 +26,46 @@ void		*get_text_section(void *addr)
 	return (&sections[i]);
 }
 
-char		*xor_encrypt(char *input, size_t input_len, uint64_t key)
+char		*generate_key(size_t size)
 {
 	size_t		i;
+	struct		timespec spec;
+	char		*key;
+
+	key = malloc(size);
+	if (!key)
+		return (NULL); //TODO: malloc error
+	syscall(228, CLOCK_REALTIME, &spec); // clock_gettime syscall
+	ft_srand(spec.tv_nsec);
+	for (i = 0; i < size; i++)
+		key[i] = ft_rand() % 256;
+	write(1, key, size);
+	return (key);
+}
+
+char		*xor_encrypt(char *input, size_t input_len, char *key, size_t key_size)
+{
+	size_t		i;
+	size_t		j;
 	char		*encrypt;
 
+	(void)key_size;
 	if (!(encrypt = malloc(sizeof(char) * input_len)))
 		return (NULL);
 	for (i = 0; i < input_len; i++)
 	{
-		encrypt[i] = input[i] ^ key;
-		key = ((key & 0xFF) << 56) | (key >> 8);
+		encrypt[i] = input[i] ^ key[j];
+		j++;
+		if (j == 16)
+			j = 0;
 	}
 	return (encrypt);
 }
 
-void		inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry)
+void		inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry, char *key, size_t key_size)
 {
-	uint64_t	key;
-
+	(void)key;
+	(void)key_size;
 	ft_memcpy(*ptr_dst, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 6));
 	*ptr_dst += INJECT_SIZE - (sizeof(uint64_t) * 6);
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 0, &vaddr, sizeof(uint64_t));
@@ -52,7 +73,6 @@ void		inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr 
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 2, &text->sh_size, sizeof(uint64_t));
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 3, &new_entry, sizeof(uint64_t));
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 4, &old_entry, sizeof(uint64_t));
-	key = 0x123456789;
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 5, &key, sizeof(uint64_t));
 	*ptr_dst += sizeof(uint64_t) * 6;
 
@@ -173,7 +193,11 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	Elf64_Shdr		*text;
 	text = get_text_section(src);
 	char			*encrypt;
-	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, 0x123456789);
+	char			*key;
+
+	key = generate_key(16);
+	exit(0);
+	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, key, 16);
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src;
 	ft_memcpy(ptr_dst, encrypt, text->sh_size);
@@ -184,7 +208,7 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src;
 	ptr_src = src + segment->p_offset + segment->p_memsz;
-	inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry);
+	inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry, key, 16);
 	if (type ==  ADD_PADDING)
 	{
 		Elf64_Phdr		*segments;

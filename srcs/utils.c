@@ -1,5 +1,18 @@
 #include "woody_woodpacker.h"
 
+static unsigned long int next_rand = 1;
+
+void		ft_srand(unsigned int seed)
+{
+	next_rand = seed;
+}
+
+int			ft_rand(void)
+{
+	next_rand = next_rand * 1103515245 + 12345;
+	return (unsigned int)(next_rand/65536) % 32768;
+}
+
 /**
 * @brief Count the size of string s
 *
