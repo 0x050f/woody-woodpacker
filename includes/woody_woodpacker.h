@@ -20,6 +20,8 @@
 #  define INJECT_SIZE 0
 # endif
 
+# define KEY_SIZE 16
+
 # define ADD_PADDING 1
 
 # define PAGE_SIZE 0x1000

@@ -39,7 +39,6 @@ char		*generate_key(size_t size)
 	ft_srand(spec.tv_nsec);
 	for (i = 0; i < size; i++)
 		key[i] = ft_rand() % 256;
-	write(1, key, size);
 	return (key);
 }
 
@@ -49,32 +48,35 @@ char		*xor_encrypt(char *input, size_t input_len, char *key, size_t key_size)
 	size_t		j;
 	char		*encrypt;
 
-	(void)key_size;
 	if (!(encrypt = malloc(sizeof(char) * input_len)))
 		return (NULL);
+	j = 0;
 	for (i = 0; i < input_len; i++)
 	{
 		encrypt[i] = input[i] ^ key[j];
 		j++;
-		if (j == 16)
+		if (j == key_size)
 			j = 0;
 	}
 	return (encrypt);
 }
 
-void		inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry, char *key, size_t key_size)
+void		inject(void **ptr_dst, Elf64_Shdr *text, Elf64_Addr new_entry, Elf64_Addr vaddr, Elf64_Addr old_entry, char *key, uint64_t key_size)
 {
-	(void)key;
-	(void)key_size;
-	ft_memcpy(*ptr_dst, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 6));
-	*ptr_dst += INJECT_SIZE - (sizeof(uint64_t) * 6);
+	ft_memcpy(*ptr_dst, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 6) + 5);
+	*ptr_dst += INJECT_SIZE - ((sizeof(uint64_t) * 6) + 5);
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 0, &vaddr, sizeof(uint64_t));
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 1, &text->sh_offset, sizeof(uint64_t));
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 2, &text->sh_size, sizeof(uint64_t));
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 3, &new_entry, sizeof(uint64_t));
 	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 4, &old_entry, sizeof(uint64_t));
-	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 5, &key, sizeof(uint64_t));
+	ft_memcpy(*ptr_dst + sizeof(uint64_t) * 5, &key_size, sizeof(uint64_t));
 	*ptr_dst += sizeof(uint64_t) * 6;
+	ft_memcpy(*ptr_dst, INJECT + (INJECT_SIZE - 5), 5);
+	*ptr_dst += 5;
+	ft_memcpy(*ptr_dst, key, key_size);
+	write(1, key, key_size); // TODO: Write key somewhere else
+	*ptr_dst += key_size;
 
 }
 
@@ -95,11 +97,11 @@ void		*write_new_segment_sz(void *ptr_src, void **ptr_dst, Elf64_Phdr *segment)
 	ft_memcpy(*ptr_dst, ptr_src, (unsigned long)&segment->p_filesz - (unsigned long)ptr_src);
 	*ptr_dst += (unsigned long)&segment->p_filesz - (unsigned long)ptr_src;
 	ptr_src = &segment->p_filesz;
-	p_filesz = segment->p_filesz + INJECT_SIZE;
+	p_filesz = segment->p_filesz + INJECT_SIZE + KEY_SIZE;
 	ft_memcpy(*ptr_dst, &p_filesz, sizeof(segment->p_filesz));
 	*ptr_dst += sizeof(segment->p_filesz);
 	ptr_src += sizeof(segment->p_filesz);
-	p_memsz = segment->p_memsz + INJECT_SIZE;
+	p_memsz = segment->p_memsz + INJECT_SIZE + KEY_SIZE;
 	ft_memcpy(*ptr_dst, &p_memsz, sizeof(segment->p_memsz));
 	*ptr_dst += sizeof(segment->p_memsz);
 	ptr_src += sizeof(segment->p_memsz);
@@ -189,15 +191,15 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	}
 	else
 		ptr_src = write_new_segment_sz(ptr_src, &ptr_dst, segment);
-// ---------------
+// --------------- ENCRYPTION
 	Elf64_Shdr		*text;
 	text = get_text_section(src);
 	char			*encrypt;
 	char			*key;
+	size_t			key_size = KEY_SIZE;
 
-	key = generate_key(16);
-	exit(0);
-	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, key, 16);
+	key = generate_key(key_size);
+	encrypt = xor_encrypt(src + text->sh_offset, text->sh_size, key, key_size);
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)text->sh_offset) - (unsigned long)ptr_src;
 	ft_memcpy(ptr_dst, encrypt, text->sh_size);
@@ -208,20 +210,21 @@ int			create_injection(void *src, void *dst, long size, Elf64_Phdr *segment, int
 	ft_memcpy(ptr_dst, ptr_src, ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src);
 	ptr_dst += ((unsigned long)src + (unsigned long)segment->p_offset + segment->p_memsz) - (unsigned long)ptr_src;
 	ptr_src = src + segment->p_offset + segment->p_memsz;
-	inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry, key, 16);
+	inject(&ptr_dst, text, new_entry, segment->p_vaddr, header->e_entry, key, key_size);
+	free(key);
 	if (type ==  ADD_PADDING)
 	{
 		Elf64_Phdr		*segments;
 
 		segments = segment + 1;
-		int diff = INJECT_SIZE - (segments->p_offset - (segment->p_offset + segment->p_filesz));
+		int diff = (INJECT_SIZE + KEY_SIZE) - (segments->p_offset - (segment->p_offset + segment->p_filesz));
 		ft_memset(ptr_dst, 0, PAGE_SIZE - (diff % PAGE_SIZE));
 		ptr_dst += PAGE_SIZE - (diff % PAGE_SIZE);
 		ptr_src = src + segments->p_offset;
 		ptr_src = add_padding_sections(src, ptr_src, &ptr_dst, segment);
 	}
 	else
-		ptr_src += INJECT_SIZE;
+		ptr_src += INJECT_SIZE + KEY_SIZE;
 	ft_memcpy(ptr_dst, ptr_src, end - ptr_src);
 	return (0);
 }
@@ -272,11 +275,11 @@ int			create_woody_file(void *addr, long size)
 	if (segments->p_type != PT_LOAD || !next || next->p_type != PT_LOAD)
 		return (-1); // TODO: error
 	type = 0;
-	if (segments->p_offset + segments->p_memsz + INJECT_SIZE > next->p_offset + segments->p_offset)
+	if (segments->p_offset + segments->p_memsz + INJECT_SIZE + KEY_SIZE > next->p_offset + segments->p_offset)
 		type = ADD_PADDING;
 	size_dst = size;
 	if (type == ADD_PADDING)
-		size += ((INJECT_SIZE / PAGE_SIZE) + 1) * PAGE_SIZE;
+		size += (((INJECT_SIZE + KEY_SIZE) / PAGE_SIZE) + 1) * PAGE_SIZE;
 	// TODO: padding
 	if (!(dst = malloc(size_dst)))
 		return (-1); // TODO: error malloc

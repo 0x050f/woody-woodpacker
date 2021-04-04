@@ -35,16 +35,26 @@ _inject:
 	mov rdx, 0x7 ; PROT_READ | PROT_WRITE | PROT_EXEC
 	syscall
 
+	jmp _key
+
+	_here:
+	pop rsi
+
 	mov rax, rdi
 	add rax, [rel offset]
 	mov rcx, 0
-	mov rdx, [rel key]
+	mov rdx, 0
 	_decrypt:
 		cmp rcx, [rel size]
 		jz _end_decrypt
-		xor byte[rax + rcx], dl
-		ror rdx, 8
+		cmp rdx, [rel key_size]
+		jnz _continue
+		mov rdx, 0
+		_continue:
+		mov r11b, byte[rsi + rdx]
+		xor byte[rax + rcx], r11b
 		inc rcx
+		inc rdx
 		jmp _decrypt
 	_end_decrypt:
 
@@ -59,4 +69,7 @@ _params:
 	size dq 0x0
 	new_entry dq 0x0
 	old_entry dq 0x0
-	key dq 0x0
+	key_size dq 0x0
+_key:
+	call _here
+	db ``
