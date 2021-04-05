@@ -60,6 +60,7 @@ _inject:
 
 	mov rax, rdi
 	add rax, [rel old_entry]
+	sub rax, [rel vaddr] ; old_entry depend on vaddr
 	pop rdx ; bring back register
 	jmp rax ; jump to old_entry
 
