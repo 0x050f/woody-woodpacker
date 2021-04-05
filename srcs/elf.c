@@ -16,7 +16,7 @@ void		*get_text_section(t_elf *elf)
 	str_table = NULL;
 	for (i = 0; i < elf->header->e_shnum; i++)
 	{
-		if (elf->sections[i].sh_offset + elf->sections[i].sh_size > (unsigned int)elf->size)
+		if (elf->sections[i].sh_offset > (unsigned int)elf->size)
 			return (NULL);
 		if (elf->sections[i].sh_type == SHT_STRTAB)
 			str_table = &elf->sections[i];
