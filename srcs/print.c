@@ -1,5 +1,10 @@
 #include "woody_woodpacker.h"
 
+/**
+* @brief print hexadecimal
+*
+* @param dec
+*/
 void	dec_to_hex(char dec)
 {
 	int				i;
@@ -25,6 +30,14 @@ void	dec_to_hex(char dec)
 		write(STDOUT_FILENO, &result[i--], 1);
 }
 
+/**
+* @brief Print a line for ft_print_memory
+* 16 character as hexadecimal, space every 2 character then print
+* ascii for those char, if they are unprintable, print '.'
+*
+* @param str
+* @param n
+*/
 void	print_line(char *str, int n)
 {
 	int temp;
@@ -54,6 +67,14 @@ void	print_line(char *str, int n)
 	}
 }
 
+/**
+* @brief Print memory pointed by addr of size 'size'
+*
+* @param addr
+* @param size
+*
+* @return addr
+*/
 void	*ft_print_memory(void *addr, unsigned int size)
 {
 	int					i;
@@ -78,6 +99,12 @@ void	*ft_print_memory(void *addr, unsigned int size)
 	return (addr);
 }
 
+/**
+* @brief Print the key in hexadecimal with '\x' before every char
+*
+* @param key generated key
+* @param size size of key
+*/
 void	print_hexa_key(char *key, size_t size)
 {
 	size_t			i;
