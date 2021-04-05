@@ -2,15 +2,43 @@
 
 static unsigned long int next_rand = 1;
 
+/**
+* @brief Set the seed to use rand (basically seed is usually time(NULL)
+*
+* @param seed
+*/
 void		ft_srand(unsigned int seed)
 {
 	next_rand = seed;
 }
 
+/**
+* @brief Implementation of rand
+*
+* @return A random int
+*/
 int			ft_rand(void)
 {
 	next_rand = next_rand * 1103515245 + 12345;
-	return (unsigned int)(next_rand/65536) % 32768;
+	return (unsigned int)(next_rand / 65536) % 32768;
+}
+
+/**
+* @brief Print error according to the code, if the code is unknown, print errno
+*
+* @param argv[] main arguments
+* @param code error code
+*/
+void		print_error(char *argv[], int code)
+{
+	if (code == CORRUPTED_FILE)
+		fprintf(stderr, "%s: %s: %s\n", argv[0], argv[1], "File corrupted");
+	else if (code == MALLOC_ERROR)
+		fprintf(stderr, "%s: %s: %s\n", argv[0], argv[1], "Malloc error");
+	else if	 (code == OUTPUT_ERROR)
+		fprintf(stderr, "%s: %s: %s\n", argv[0], "woody", strerror(errno));
+	else if (errno)
+		fprintf(stderr, "%s: %s: %s\n", argv[0], argv[1], strerror(errno));
 }
 
 /**

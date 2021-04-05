@@ -47,21 +47,27 @@ typedef struct		s_key
 	size_t			size;
 }					t_key;
 
-/* encryption.c */
+/* binary.c */
+int			fill_binary(t_elf *elf, t_key *key, void *dst, int type);
 
+/* elf.c */
+void		*get_text_section(t_elf *elf);
+int			init_elf(t_elf *elf, void *addr, long size);
+int			check_file(void *addr);
+
+/* encryption.c */
 char		*generate_key(size_t size);
 char		*xor_encrypt(char *input, size_t input_len, t_key *key);
 
 /* padding.c */
-
 void		*update_segment_sz(void *ptr_src, void **ptr_dst, Elf64_Phdr *segment, t_key *key);
 void		*add_padding_segments(t_elf *elf, void *ptr_src, void **ptr_dst, t_key *key);
-void		*add_padding_sections(t_elf *elf, void *ptr_src, void **ptr_dst);
+void		*add_padding_sections(t_elf *elf, void *ptr_src, void **ptr_dst, t_key *key);
 
 /* utils.c */
-
 void		ft_srand(unsigned int seed);
 int			ft_rand(void); // RAND_MAX assumed to be 32767
+void		print_error(char *argv[], int code);
 size_t		ft_strlen(const char *s);
 int			ft_strcmp(const char *s1, const char *s2);
 void		*ft_memset(void *b, int c, size_t len);

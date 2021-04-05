@@ -1,5 +1,12 @@
 #include "woody_woodpacker.h"
 
+/**
+* @brief Generate a key of randoms 'size' chars
+*
+* @param size
+*
+* @return string generated
+*/
 char		*generate_key(size_t size)
 {
 	size_t		i;
@@ -16,6 +23,16 @@ char		*generate_key(size_t size)
 	return (key);
 }
 
+/**
+* @brief Encrypt the input with the key generated. Every char is xor with the j
+* char on key
+*
+* @param input input to encrypt
+* @param input_len length of input
+* @param key key generated
+*
+* @return string encrypted
+*/
 char		*xor_encrypt(char *input, size_t input_len, t_key *key)
 {
 	size_t		i;
