@@ -159,7 +159,7 @@ int			main(int argc, char *argv[])
 {
 	int		ret;
 
-	if (argc < 2)
+	if (argc != 2)
 	{
 		fprintf(stderr, "usage: %s file\n", argv[0]);
 		return (EINVAL);
