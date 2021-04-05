@@ -1,4 +1,0 @@
-- Compress .text with huffman algorithm
-- Put compress table after payload
-- Realign after compression
-- Decompress algorithm in payload using table

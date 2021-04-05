@@ -279,7 +279,7 @@ int			create_woody_file(void *addr, long size)
 		type = ADD_PADDING;
 	size_dst = size;
 	if (type == ADD_PADDING)
-		size += (((INJECT_SIZE + KEY_SIZE) / PAGE_SIZE) + 1) * PAGE_SIZE;
+		size_dst += (((INJECT_SIZE + KEY_SIZE) / PAGE_SIZE) + 1) * PAGE_SIZE;
 	// TODO: padding
 	if (!(dst = malloc(size_dst)))
 		return (-1); // TODO: error malloc

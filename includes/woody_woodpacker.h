@@ -20,7 +20,7 @@
 #  define INJECT_SIZE 0
 # endif
 
-# define KEY_SIZE 16
+# define KEY_SIZE 256
 
 # define ADD_PADDING 1
 
