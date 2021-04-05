@@ -23,6 +23,7 @@ SRCS			=	woody_woodpacker.c \
 					elf.c \
 					encryption.c \
 					padding.c \
+					print.c \
 					utils.c
 SRCS_ASM		=	inject.s
 

@@ -81,7 +81,10 @@ int			create_woody_file(void *addr, long size)
 		free(key.str);
 		return (OUTPUT_ERROR);
 	}
-	write(STDOUT_FILENO, key.str, key.size);
+	write(STDOUT_FILENO, "========================== KEY =========================\n", 57);
+	ft_print_memory(key.str, key.size);
+	write(STDOUT_FILENO, "=================== COPY/PASTE FORMAT ==================\n", 57);
+	print_hexa_key(key.str, key.size);
 	free(key.str);
 	return (0);
 }
