@@ -27,6 +27,8 @@ DIR_OBJS_ASM	=	./compiled_srcs/
 # FILES #
 
 SRCS			=	woody_woodpacker.c \
+					encryption.c \
+					padding.c \
 					utils.c
 
 SRCS_ASM		=	inject.s

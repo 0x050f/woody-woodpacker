@@ -37,7 +37,7 @@ _inject:
 
 	jmp _key
 
-	_here:
+	_decryption:
 	pop rsi
 
 	mov rax, rdi
@@ -48,9 +48,9 @@ _inject:
 		cmp rcx, [rel size]
 		jz _end_decrypt
 		cmp rdx, [rel key_size]
-		jnz _continue
+		jnz _continue_decrypt
 		mov rdx, 0
-		_continue:
+		_continue_decrypt:
 		mov r11b, byte[rsi + rdx]
 		xor byte[rax + rcx], r11b
 		inc rcx
@@ -60,7 +60,7 @@ _inject:
 
 	mov rax, rdi
 	add rax, [rel old_entry]
-	pop rdx ; get back register
+	pop rdx ; bring back register
 	jmp rax ; jump to old_entry
 
 _params:
@@ -71,5 +71,5 @@ _params:
 	old_entry dq 0x0
 	key_size dq 0x0
 _key:
-	call _here
+	call _decryption
 	db ``
