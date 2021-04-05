@@ -29,6 +29,7 @@
 # define CORRUPTED_FILE -1
 # define MALLOC_ERROR -2
 # define OUTPUT_ERROR -3
+# define WRONG_FILETYPE -4
 
 typedef struct		s_elf
 {

@@ -134,7 +134,7 @@ int			woody_woodpacker(char *filename)
 	if (ret == ET_EXEC || ret == ET_DYN)
 		ret = 0;
 	else
-		ret = EINVAL;
+		ret = WRONG_FILETYPE;
 	if (!ret)
 		ret = create_woody_file(addr, size);
 	else
