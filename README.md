@@ -17,3 +17,7 @@ make
 ```
 usage: ./woody_woodpacker file
 ```
+
+## Demo
+
+![alt text](https://github.com/ska42/woody-woodypacker/blob/main/img/demo.png?raw=true)
