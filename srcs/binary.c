@@ -10,15 +10,16 @@
 */
 void		add_injection(t_elf *elf, void **dst, Elf64_Addr new_entry, t_key *key)
 {
-	ft_memcpy(*dst, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 6) + 5);
-	*dst += INJECT_SIZE - ((sizeof(uint64_t) * 6) + 5);
+	ft_memcpy(*dst, INJECT, INJECT_SIZE - (sizeof(uint64_t) * 7) + 5);
+	*dst += INJECT_SIZE - ((sizeof(uint64_t) * 7) + 5);
 	ft_memcpy(*dst + sizeof(uint64_t) * 0, &elf->pt_load->p_vaddr, sizeof(uint64_t));
-	ft_memcpy(*dst + sizeof(uint64_t) * 1, &elf->text_section->sh_offset, sizeof(uint64_t));
-	ft_memcpy(*dst + sizeof(uint64_t) * 2, &elf->text_section->sh_size, sizeof(uint64_t));
-	ft_memcpy(*dst + sizeof(uint64_t) * 3, &new_entry, sizeof(uint64_t));
-	ft_memcpy(*dst + sizeof(uint64_t) * 4, &elf->header->e_entry, sizeof(uint64_t)); // old_entry
-	ft_memcpy(*dst + sizeof(uint64_t) * 5, &key->size, sizeof(uint64_t));
-	*dst += sizeof(uint64_t) * 6;
+	ft_memcpy(*dst + sizeof(uint64_t) * 1, &elf->pt_load->p_offset, sizeof(uint64_t));
+	ft_memcpy(*dst + sizeof(uint64_t) * 2, &elf->text_section->sh_offset, sizeof(uint64_t));
+	ft_memcpy(*dst + sizeof(uint64_t) * 3, &elf->text_section->sh_size, sizeof(uint64_t));
+	ft_memcpy(*dst + sizeof(uint64_t) * 4, &new_entry, sizeof(uint64_t));
+	ft_memcpy(*dst + sizeof(uint64_t) * 5, &elf->header->e_entry, sizeof(uint64_t)); // old_entry
+	ft_memcpy(*dst + sizeof(uint64_t) * 6, &key->size, sizeof(uint64_t));
+	*dst += sizeof(uint64_t) * 7;
 	ft_memcpy(*dst, INJECT + (INJECT_SIZE - 5), 5);
 	*dst += 5;
 	ft_memcpy(*dst, key->str, key->size);
@@ -90,10 +91,13 @@ int			fill_binary(t_elf *elf, t_key *key, void *dst, int type)
 
 	src = elf->addr;
 	end = elf->addr + elf->size;
-	new_entry = elf->pt_load->p_vaddr + elf->pt_load->p_offset + elf->pt_load->p_memsz;
+	new_entry = elf->pt_load->p_vaddr + elf->pt_load->p_memsz;
 	src = fill_header(elf, src, &dst, new_entry);
 	if (type == ADD_PADDING)
+	{
+		printf("LOL\n");
 		src = add_padding_segments(elf, src, &dst, key);
+	}
 	else
 		src = update_segment_sz(src, &dst, elf->pt_load, key);
 	ret = fill_encrypted_text(elf, src, &dst, key);

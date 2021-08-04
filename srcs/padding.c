@@ -62,6 +62,18 @@ void		*add_padding_segments(t_elf *elf, void *src, void **dst, t_key *key)
 			ft_memcpy(*dst, &shoff, sizeof(shoff));
 			*dst += sizeof(shoff);
 			src = (void *)&elf->segments[i].p_offset + sizeof(elf->segments[i].p_offset);
+			shoff = elf->segments[i].p_vaddr + PAGE_SIZE;
+			ft_memcpy(*dst, src, (unsigned long)&elf->segments[i].p_vaddr - (unsigned long)src);
+			*dst += (unsigned long)&elf->segments[i].p_vaddr - (unsigned long)src;
+			ft_memcpy(*dst, &shoff, sizeof(shoff));
+			*dst += sizeof(shoff);
+			src = (void *)&elf->segments[i].p_vaddr + sizeof(elf->segments[i].p_vaddr);
+			shoff = elf->segments[i].p_paddr + PAGE_SIZE;
+			ft_memcpy(*dst, src, (unsigned long)&elf->segments[i].p_paddr - (unsigned long)src);
+			*dst += (unsigned long)&elf->segments[i].p_paddr - (unsigned long)src;
+			ft_memcpy(*dst, &shoff, sizeof(shoff));
+			*dst += sizeof(shoff);
+			src = (void *)&elf->segments[i].p_paddr + sizeof(elf->segments[i].p_paddr);
 		}
 		else if ((unsigned long)&elf->segments[i] == (unsigned long)elf->pt_load)
 			src = update_segment_sz(src, dst, elf->pt_load, key);

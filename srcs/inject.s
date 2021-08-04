@@ -32,6 +32,8 @@ _inject:
 	mov rsi, [rel new_entry]
 	sub rsi, [rel vaddr]
 	sub rdi, rsi
+	add rdi, [rel p_offset]
+	sub rdi, [rel p_offset]
 	mov rdx, 0x7 ; PROT_READ | PROT_WRITE | PROT_EXEC
 	syscall
 
@@ -41,6 +43,7 @@ _inject:
 	pop rsi
 
 	mov rax, rdi
+	sub rax, [rel p_offset]
 	add rax, [rel offset]
 	mov rcx, 0
 	mov rdx, 0
@@ -66,6 +69,7 @@ _inject:
 
 _params:
 	vaddr dq 0x0
+	p_offset dq 0x0
 	offset dq 0x0
 	size dq 0x0
 	new_entry dq 0x0
