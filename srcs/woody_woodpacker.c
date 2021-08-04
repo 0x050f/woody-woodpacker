@@ -57,8 +57,6 @@ int			create_woody_file(void *addr, long size)
 	key.str = generate_key(key.size);
 	type = 0;
 	next = elf.pt_load + 1;
-	printf("0x%lx\n", elf.pt_load->p_offset + elf.pt_load->p_memsz + INJECT_SIZE + key.size);
-	printf("0x%lx\n", next->p_offset + elf.pt_load->p_offset);
 	if (elf.pt_load->p_offset + elf.pt_load->p_memsz + INJECT_SIZE + key.size > next->p_offset)
 	{
 		type = ADD_PADDING;
