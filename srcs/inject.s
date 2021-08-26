@@ -32,8 +32,6 @@ _inject:
 	mov rsi, [rel new_entry]
 	sub rsi, [rel vaddr]
 	sub rdi, rsi
-	add rdi, [rel p_offset]
-	sub rdi, [rel p_offset]
 	mov rdx, 0x7 ; PROT_READ | PROT_WRITE | PROT_EXEC
 	syscall
 
