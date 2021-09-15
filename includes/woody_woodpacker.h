@@ -30,6 +30,7 @@
 # define MALLOC_ERROR -2
 # define OUTPUT_ERROR -3
 # define WRONG_FILETYPE -4
+# define OUT_OF_RANGE -5
 
 typedef struct		s_elf
 {

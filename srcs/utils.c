@@ -39,6 +39,8 @@ void		print_error(char *argv[], int code)
 		fprintf(stderr, "%s: %s: %s\n", argv[0], "woody", strerror(errno));
 	else if	 (code == WRONG_FILETYPE)
 		fprintf(stderr, "%s: %s: %s\n", argv[0], argv[1], "Wrong filetype (x86_64 elf binary only)");
+	else if	 (code == OUT_OF_RANGE)
+		fprintf(stderr, "%s: %s: %s\n", argv[0], argv[1], "Cannot resolve this case");
 	else if (errno)
 		fprintf(stderr, "%s: %s: %s\n", argv[0], argv[1], strerror(errno));
 }

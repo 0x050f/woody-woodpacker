@@ -94,10 +94,7 @@ int			fill_binary(t_elf *elf, t_key *key, void *dst, int type)
 	new_entry = elf->pt_load->p_vaddr + elf->pt_load->p_memsz;
 	src = fill_header(elf, src, &dst, new_entry);
 	if (type == ADD_PADDING)
-	{
-		printf("LOL\n");
 		src = add_padding_segments(elf, src, &dst, key);
-	}
 	else
 		src = update_segment_sz(src, &dst, elf->pt_load, key);
 	ret = fill_encrypted_text(elf, src, &dst, key);

@@ -64,6 +64,21 @@ void		*add_padding_segments(t_elf *elf, void *src, void **dst, t_key *key)
 			ft_memcpy(*dst, &shoff, sizeof(shoff));
 			*dst += sizeof(shoff);
 			src = (void *)&elf->segments[i].p_offset + sizeof(elf->segments[i].p_offset);
+			/*
+			Elf64_Addr addr;
+			addr = elf->segments[i].p_vaddr + PAGE_SIZE;
+			ft_memcpy(*dst, src, (unsigned long)&elf->segments[i].p_vaddr - (unsigned long)src);
+			*dst += (unsigned long)&elf->segments[i].p_vaddr - (unsigned long)src;
+			ft_memcpy(*dst, &addr, sizeof(addr));
+			*dst += sizeof(addr);
+			src = (void *)&elf->segments[i].p_vaddr + sizeof(elf->segments[i].p_vaddr);
+			addr = elf->segments[i].p_paddr + PAGE_SIZE;
+			ft_memcpy(*dst, src, (unsigned long)&elf->segments[i].p_paddr - (unsigned long)src);
+			*dst += (unsigned long)&elf->segments[i].p_paddr - (unsigned long)src;
+			ft_memcpy(*dst, &addr, sizeof(addr));
+			*dst += sizeof(addr);
+			src = (void *)&elf->segments[i].p_paddr + sizeof(elf->segments[i].p_paddr);
+			*/
 		}
 	}
 	return (src);
@@ -95,6 +110,15 @@ void		*add_padding_sections(t_elf *elf, void *src, void **dst, t_key *key)
 	{
 		if ((unsigned long)elf->sections[i].sh_offset > (unsigned long)elf->pt_load->p_offset + elf->pt_load->p_filesz)
 		{
+			/*
+			Elf64_Addr sh_addr;
+			sh_addr = elf->sections[i].sh_addr + PAGE_SIZE;
+			ft_memcpy(*dst, src, (unsigned long)&elf->sections[i].sh_addr - (unsigned long)src);
+			*dst += (unsigned long)&elf->sections[i].sh_addr - (unsigned long)src;
+			ft_memcpy(*dst, &sh_addr, sizeof(sh_addr));
+			*dst += sizeof(sh_addr);
+			src = (void *)&elf->sections[i].sh_addr + sizeof(elf->sections[i].sh_addr);
+			*/
 			shoff = elf->sections[i].sh_offset + PAGE_SIZE;
 			ft_memcpy(*dst, src, (unsigned long)&elf->sections[i].sh_offset - (unsigned long)src);
 			*dst += (unsigned long)&elf->sections[i].sh_offset - (unsigned long)src;

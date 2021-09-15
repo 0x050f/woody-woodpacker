@@ -60,6 +60,10 @@ int			create_woody_file(void *addr, long size)
 	if (elf.pt_load->p_offset + elf.pt_load->p_memsz + INJECT_SIZE + key.size > next->p_offset)
 	{
 		type = ADD_PADDING;
+		Elf64_Phdr		*nnext;
+		nnext = elf.pt_load + 1;
+		if (nnext && nnext->p_type == PT_LOAD)
+			return (OUT_OF_RANGE);
 	}
 	size_dst = size;
 	if (type == ADD_PADDING)
