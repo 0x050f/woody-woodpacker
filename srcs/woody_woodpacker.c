@@ -61,7 +61,7 @@ int			create_woody_file(void *addr, long size)
 	{
 		type = ADD_PADDING;
 		Elf64_Phdr		*nnext;
-		nnext = elf.pt_load + 1;
+		nnext = next + 1;
 		if (nnext && nnext->p_type == PT_LOAD)
 			return (OUT_OF_RANGE);
 	}
